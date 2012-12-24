@@ -243,7 +243,7 @@ PHP_FUNCTION(ahocorasick_match)
     //*** 6. Set input text
     //tmp_text.astring = lowered;
     tmp_text.astring = normal;
-    tmp_text.length = strlen(tmp_text.astring);
+    tmp_text.length = Z_STRLEN_P(uservar);
 
     /* Sending parameter to call-back function */
     // initialize return array
