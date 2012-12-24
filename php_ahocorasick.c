@@ -214,7 +214,8 @@ PHP_FUNCTION(ahocorasick_isValid)
 PHP_FUNCTION(ahocorasick_match)
 {
     char *lowered, *normal;
-    zval *uservar, *ahostruct, *findAll;
+    zval *uservar, *ahostruct;
+    zend_bool findAll = 1;
     ahoMasterStruct * ahoMaster;
     AC_TEXT_t tmp_text;
     
@@ -253,12 +254,7 @@ PHP_FUNCTION(ahocorasick_match)
     my_param.resultArray = return_value;
     
     // find all defined
-    if (findAll){
-        zend_bool findAllBool = Z_BVAL_P(findAll);
-        if (findAllBool && (findAllBool==0 || findAllBool==72)){
-                my_param.retVal = 1;
-        }
-    }
+    my_param.retVal = findAll ? 0:1;
     
     //*** 7. Do search
     ac_automata_search(ahoMaster->acap, &tmp_text, (void *)(&my_param));
