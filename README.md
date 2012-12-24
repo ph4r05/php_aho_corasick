@@ -198,11 +198,13 @@ In this repo you can find benchmark.php file, with this you can perform your own
 My setup generates random haystacks and needles from alphabet="abcdef". There is performed 5 measurements of time spent by search and average is computed.
 Search structure construction is conted to time measurements.
 
-Script generates 256 random haystacks of size 2048 characters, 2048 needles with 16 characters.
+Script generates:
+  * 256 random haystacks of size 2048 characters
+  * 2048 needles with 16 characters.
 
-Naive approach simply iterates over haystacks and needles, search is performed with strpos().
-
-Aho-Corasick approach constructs search structure, then all haystacks are searched for needles.
+Principle:
+  * Naive approach simply iterates over haystacks and needles, search is performed with strpos().
+  * Aho-Corasick approach constructs search structure, then all haystacks are searched for needles.
 
 Results:
 ```
@@ -212,5 +214,3 @@ AhoCorasick search; sampleCount: 5; keySize: 2048; time: 0.107578
 
 Speedup: 60.2X compared to naive approach.
 
-
-Naive approach simple iterates 
