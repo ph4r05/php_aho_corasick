@@ -37,7 +37,7 @@ int le_ahostruct_master;
 
 ZEND_DECLARE_MODULE_GLOBALS(ahocorasick)
 
-static function_entry ahocorasick_functions[] = {
+static zend_function_entry ahocorasick_functions[] = {
     PHP_FE(ahocorasick_match, NULL)
     PHP_FE(ahocorasick_init, NULL)
     PHP_FE(ahocorasick_deinit, NULL)
