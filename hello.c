@@ -47,7 +47,7 @@ int le_ahostruct_master;
 
 ZEND_DECLARE_MODULE_GLOBALS(hello)
 
-static function_entry hello_functions[] = {
+static zend_function_entry hello_functions[] = {
     PHP_FE(ahocorasick_match, NULL)
     PHP_FE(ahocorasick_init, NULL)
     PHP_FE(ahocorasick_deinit, NULL)
@@ -859,7 +859,7 @@ PHP_FUNCTION(hello_person_pnew)
     char *name, *key;
     int name_len, key_len;
     long age;
-    list_entry *le, new_le;
+    zend_rsrc_list_entry *le, new_le;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl", &name, &name_len, &age) == FAILURE) {
         RETURN_FALSE;
@@ -896,7 +896,7 @@ PHP_FUNCTION(hello_person_pnew)
     /* Store a reference in the persistence list */
     new_le.ptr = person;
     new_le.type = le_hello_person_persist;
-    zend_hash_add(&EG(persistent_list), key, key_len + 1, &new_le, sizeof(list_entry), NULL);
+    zend_hash_add(&EG(persistent_list), key, key_len + 1, &new_le, sizeof(zend_rsrc_list_entry), NULL);
 
     efree(key);
 }
