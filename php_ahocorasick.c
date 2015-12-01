@@ -126,6 +126,7 @@ PHP_MSHUTDOWN_FUNCTION(ahocorasick)
     return SUCCESS;
 }
 
+#ifdef AHOCORASICK_USE_LOWER
 /**
  * Invokes PHP function that converts string to lower case. 
  * Calling mb_strtolower didn't work properly because of unavailability 
@@ -148,6 +149,7 @@ char * mb_strtolower(char * input){
         return NULL;
     }
 }
+#endif
 
 /**
  * AhoCorasick callback handler - MATCH_CALBACK_t type
@@ -233,7 +235,9 @@ PHP_FUNCTION(ahocorasick_match)
     // at first, obtain also lower case variant
     normal = Z_STRVAL_P(uservar);
     // strtolower is disabled now, exact match is required
-    //lowered = mb_strtolower(Z_STRVAL_P(uservar));    
+#ifdef AHOCORASICK_USE_LOWER
+    lowered = mb_strtolower(Z_STRVAL_P(uservar));
+#endif
     
     //*** Reset automata at first - clean position
     /** if you want to do another search with same automata
@@ -242,8 +246,11 @@ PHP_FUNCTION(ahocorasick_match)
     ac_automata_reset(ahoMaster->acap);
     
     //*** 6. Set input text
-    //tmp_text.astring = lowered;
+#ifdef AHOCORASICK_USE_LOWER
+    tmp_text.astring = lowered;
+#else
     tmp_text.astring = normal;
+#endif
     tmp_text.length = Z_STRLEN_P(uservar);
 
     /* Sending parameter to call-back function */
