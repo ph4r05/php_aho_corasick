@@ -20,6 +20,12 @@
         MultiFast (http://sourceforge.net/projects/multifast/?source=dlp)
 */
 
+/**
+ * Sources:
+ *  http://www.phpinternalsbook.com/zvals/memory_management.html
+ *  http://docstore.mik.ua/orelly/webprog/php/ch14_06.htm
+ */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -31,6 +37,7 @@
 #include "php_globals.h"
 #include "TSRM.h"
 #include "ahocorasick.h"
+#include "actypes.h"
 
 // counter for aho struct resources
 int le_ahostruct_master;
@@ -98,8 +105,21 @@ static void php_ahostruct_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
         // now release strings kept inside aho structure
         for (i=0; i<aho->ahobufflen; i++){
             // at first release strings
-            efree(aho->ahostructbuff[i]->key);
-            efree(aho->ahostructbuff[i]->value);
+            if (aho->ahostructbuff[i]->key != NULL) {
+                efree(aho->ahostructbuff[i]->key);
+                aho->ahostructbuff[i]->key = NULL;
+            }
+
+            if (aho->ahostructbuff[i]->value != NULL) {
+                efree(aho->ahostructbuff[i]->value);
+                aho->ahostructbuff[i]->value = NULL;
+            }
+
+            if (aho->ahostructbuff[i]->auxObj != NULL){
+                zval_ptr_dtor(&(aho->ahostructbuff[i]->auxObj));
+                aho->ahostructbuff[i]->auxObj = NULL;
+            }
+
             // now free element structure
             efree(aho->ahostructbuff[i]);
         }
@@ -175,8 +195,12 @@ int match_handler(AC_MATCH_t * m, void * param)
 
         if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
             add_assoc_string(mysubarray, "key", (char*)m->patterns[j].id.u.stringy, 1);
-        } else {
+        } else if (m->patterns[j].id.type == AC_PATTID_TYPE_NUMBER){
             add_assoc_long(mysubarray, "keyIdx", m->patterns[j].id.u.number);
+        }
+
+        if (m->patterns[j].aux != NULL){
+            add_assoc_zval(mysubarray, "aux", (zval*)m->patterns[j].aux);
         }
 
         add_assoc_string(mysubarray, "value", (char*)m->patterns[j].ptext.astring, 1);
@@ -331,9 +355,13 @@ PHP_FUNCTION(ahocorasick_init)
         ahostructbuff[curIdx] = tmpStruct;
         tmpStruct->ignoreCase=0;
         tmpStruct->key=NULL;
+        tmpStruct->keyId=0;
+        tmpStruct->keyType=AC_PATTID_TYPE_DEFAULT;
         tmpStruct->value=NULL;
-        
+        tmpStruct->auxObj=NULL;
+
         // iterate over sub array
+        unsigned long allKeys = 0;
         zval **data_sub;
         HashTable *arr_hash_sub = Z_ARRVAL_P(*data);
         HashPosition pointer_sub;
@@ -344,7 +372,7 @@ PHP_FUNCTION(ahocorasick_init)
             char *key;
             unsigned int key_len;
             unsigned long index;
-            unsigned int keyFound = 0;
+            unsigned long keyFound = 0;
 
             // obtain array key
             if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer_sub) == HASH_KEY_IS_STRING) {
@@ -362,14 +390,37 @@ PHP_FUNCTION(ahocorasick_init)
                 keyFound|=2;
             } else if (strcasecmp("ignoreCase", key)==0){
                 keyFound|=4;
+            } else if (strcasecmp("id", key)==0){
+                keyFound|=8;
+            } else if (strcasecmp("aux", key)==0){
+                keyFound|=0x10;
             } else {
                 php_error_docref(NULL TSRMLS_CC, E_WARNING, 
                         "Invalid structure (unrecognized sub-array key: [%s])! "
-                        "Only allowed are: {key, value, ignoreCase}. Cannot initialize.", key);
+                        "Only allowed are: {key, id, value, aux, ignoreCase}. Cannot initialize.", key);
                 RETURN_FALSE;
             }
+            allKeys |= keyFound;
+
+            // Numeric identifier
+            if ((keyFound & 0x8) > 0){
+                long keyId = Z_LVAL(temp);
+                tmpStruct->keyId = keyId;
+                tmpStruct->keyType = AC_PATTID_TYPE_NUMBER;
+            }
+
+            // Aux object
+            if ((keyFound & 0x10) > 0){
+                zval *zv_dest;
+                ALLOC_ZVAL(zv_dest);
+                INIT_PZVAL_COPY(zv_dest, &temp);
+                zval_copy_ctor(zv_dest);
+
+                // TODO: do not copy, just pass the reference, increase ref count.
+                tmpStruct->auxObj = zv_dest;
+            }
             
-            // if boolean value -> process
+            // ignoreCase - deprecated.
             if ((keyFound & 0x4) > 0){
                 // convert to boolean
                 int tmpBool = Z_BVAL(temp);
@@ -384,6 +435,7 @@ PHP_FUNCTION(ahocorasick_init)
                 if (keyFound == 0x1){
                     // key
                     tmpStruct->key = stmp;
+                    tmpStruct->keyType = AC_PATTID_TYPE_STRING;
                 } else if (keyFound == 0x2){
                     // value
                     tmpStruct->value = stmp;
@@ -393,9 +445,15 @@ PHP_FUNCTION(ahocorasick_init)
         }
         
         // sanity check, if failed, return false
-        if (tmpStruct->key==NULL || tmpStruct->value==NULL){
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure format! ");
+        if (tmpStruct->value==NULL){
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified!");
                 RETURN_FALSE;
+        }
+
+        // numeric key and string identifier are mutualy exclusive
+        if ((allKeys & 0x1) && (allKeys & 0x8)){
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both!");
+            RETURN_FALSE;
         }
     }
     
@@ -406,7 +464,6 @@ PHP_FUNCTION(ahocorasick_init)
 
     //*** 2. Define AC variables: AC_AUTOMATA_t *, AC_PATTERN_t, and AC_TEXT_t
     AC_TRIE_t * acap;
-    AC_PATTERN_t tmp_patt;
     AC_TEXT_t tmp_text;
 
     //*** 3. Get a new automata
@@ -414,6 +471,7 @@ PHP_FUNCTION(ahocorasick_init)
 
     //*** 4. add patterns to automata
     for (i=0; i<array_count; i++){
+        AC_PATTERN_t tmp_patt;
         // search string
         tmp_patt.ptext.astring = ahostructbuff[i]->value;
         tmp_patt.ptext.length = ahostructbuff[i]->valueLen;
@@ -423,12 +481,23 @@ PHP_FUNCTION(ahocorasick_init)
         tmp_patt.rtext.astring = NULL;
         tmp_patt.rtext.length = 0;
 
-        // representative string (key)
-        tmp_patt.id.u.stringy = ahostructbuff[i]->key;
-        tmp_patt.id.type = AC_PATTID_TYPE_STRING;
+        // search value key
+        tmp_patt.id.type = ahostructbuff[i]->keyType;
+        if (ahostructbuff[i]->keyType == AC_PATTID_TYPE_NUMBER){
+            tmp_patt.id.u.number = ahostructbuff[i]->keyId;
+        } else if (ahostructbuff[i]->keyType == AC_PATTID_TYPE_STRING) {
+            tmp_patt.id.u.stringy = ahostructbuff[i]->key;
+        }
 
-        // add this pattern to automata
-        ac_trie_add(acap, &tmp_patt, 0);
+        // Aux object.
+        if (ahostructbuff[i]->auxObj != NULL){
+            tmp_patt.aux = (void*) ahostructbuff[i]->auxObj;
+        } else {
+            tmp_patt.aux = NULL;
+        }
+
+        // add this pattern to trie. copy pattern to internal memory.
+        ac_trie_add(acap, &tmp_patt, 1);
     }
 
     //*** 5. Finalize automata (no more patterns will be added).

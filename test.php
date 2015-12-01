@@ -1,21 +1,30 @@
 <?php
 echo "Going to init: \n";
+$aux1 = array(array("helloAuxObject", 41));
+$aux2 = 0x42;
+$aux3 = "simple-aux";
 
 $data = array(
-		array('key'=>'ab', 'value'=>'alfa', 'ignoreCase'=>true),
-		array('key'=>'ac', 'value'=>'beta', 'ignoreCase'=>true),
-		array('key'=>'ad', 'value'=>'gamma', 'ignoreCase'=>true),
-		array('key'=>'ae', 'value'=>'delta', 'ignoreCase'=>true),
-		array('key'=>'af', 'value'=>'zeta', 'ignoreCase'=>true),
-		array('key'=>'ag', 'value'=>'omega', 'ignoreCase'=>true),
-		array('key'=>'ah', 'value'=>'lfa', 'ignoreCase'=>true)
-	     );
+		array('key'=>'ab', 'value'=>'alfa'),
+		array('key'=>'ac', 'value'=>'beta'),
+		array('key'=>'ad', 'value'=>'gamma', 'aux'=>$aux2),
+		array('key'=>'ae', 'value'=>'delta', 'aux'=>$aux3),
+		array('key'=>'af', 'value'=>'zeta'),
+		array('key'=>'ag', 'value'=>'omega'),
+		array('key'=>'ah', 'value'=>'lfa'),
+		array('id'=>42, 'value'=>'pie'),
+		array('value'=>'simple'),
+		array('value'=>'aux', 'aux'=>$aux1),
+		array('value'=>'ščř+éé'),
+		array('value'=>'éé'),
+);
 
 $c = ahocorasick_init($data);
+$data = array(); // Memoty test.
 echo "AhoCorasick struct: ";
 var_dump($c);
 
-$str = "alFABETA gammadelta delta delta!";
+$str = "alFABETA gammadelta delta delta simple pie! aux ssščř+ééžž ččř é é-é éeéee éé";
 $d = ahocorasick_match($str, $c);
 echo "AhoCorasick match for ahocorasick_match(\"$str\", c): ";
 var_dump($d);

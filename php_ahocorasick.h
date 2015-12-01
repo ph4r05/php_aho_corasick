@@ -26,8 +26,9 @@
 #include "TSRM.h"
 #endif
 
-// aho corasick import
+// Aho-Corasick import
 #include "ahocorasick.h"
+#include "actypes.h"
 
 ZEND_BEGIN_MODULE_GLOBALS(ahocorasick)
     long counter;
@@ -40,7 +41,7 @@ ZEND_END_MODULE_GLOBALS(ahocorasick)
 #define AHOCORASICK_G(v) (ahocorasick_globals.v)
 #endif
 
-#define PHP_AHOCORASICK_VERSION "1.0"
+#define PHP_AHOCORASICK_VERSION "2.0"
 #define PHP_AHOCORASICK_EXTNAME "ahocorasick"
 
 /**
@@ -57,9 +58,14 @@ struct aho_callback_payload {
  */
 typedef struct _ahostruct {
     char *key;
+    long keyId;
+    enum ac_pattid_type keyType;
+
     char *value;
     int valueLen;
+
     int ignoreCase;
+    zval * auxObj;
 } ahostruct;
 
 /**
