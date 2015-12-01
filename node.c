@@ -257,6 +257,7 @@ static void node_copy_pattern
         to->id.u.number = from->id.u.number;
     
     to->id.type = from->id.type;
+    to->aux = from->aux;
 }
 
 /**

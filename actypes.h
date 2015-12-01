@@ -90,6 +90,7 @@ typedef struct ac_pattern
     AC_TEXT_t ptext;    /**< The search string */
     AC_TEXT_t rtext;    /**< The replace string */
     AC_PATTID_t id;   /**< Pattern identifier */
+    void * aux;       /**< User defined object */
 } AC_PATTERN_t;
 
 /**
