@@ -342,8 +342,7 @@ PHP_FUNCTION(ahocorasick_init)
             char *key;
             unsigned int key_len;
             unsigned long index;
-            // flags of found keys
-            unsigned char keyFound=0;
+            unsigned int keyFound = 0;
 
             // obtain array key
             if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer_sub) == HASH_KEY_IS_STRING) {
@@ -363,27 +362,27 @@ PHP_FUNCTION(ahocorasick_init)
                 keyFound|=4;
             } else {
                 php_error_docref(NULL TSRMLS_CC, E_WARNING, 
-                        "Invalid structure (bad sub-array key: [%s])! "
+                        "Invalid structure (unrecognized sub-array key: [%s])! "
                         "Only allowed are: {key, value, ignoreCase}. Cannot initialize.", key);
                 RETURN_FALSE;
             }
             
             // if boolean value -> process
-            if (keyFound==4){
+            if ((keyFound & 0x4) > 0){
                 // convert to boolean
                 int tmpBool = Z_BVAL(temp);
                 tmpStruct->ignoreCase = tmpBool;
             }
             
-            // string value -> process
+            // key/value present -> process
             if ((keyFound & 0x3) > 0){
-                char * stmp=NULL;
+                char * stmp = NULL;
                 // copy string
                 stmp = estrndup(Z_STRVAL(temp), Z_STRLEN(temp));
-                if (keyFound==1){
+                if (keyFound == 0x1){
                     // key
                     tmpStruct->key = stmp;
-                } else {
+                } else if (keyFound == 0x2){
                     // value
                     tmpStruct->value = stmp;
                     tmpStruct->valueLen = Z_STRLEN(temp);
@@ -393,7 +392,7 @@ PHP_FUNCTION(ahocorasick_init)
         
         // sanity check, if failed, return false
         if (tmpStruct->key==NULL || tmpStruct->value==NULL){
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure, struct not complete! ");
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure format! ");
                 RETURN_FALSE;
         }
     }

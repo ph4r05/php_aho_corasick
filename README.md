@@ -14,7 +14,7 @@ Dependencies
 This project is simple PHP wrapper of (or interface to) another project:
 MultiFast: http://sourceforge.net/projects/multifast/?source=dlp
 
-Source of inspiration for this project was great tutorial:
+Source of inspiration for this project was a great tutorial:
 http://devzone.zend.com/446/extension-writing-part-iii-resources/
 
 Aho-Corasick C library is wrapped as PHP extension loadable to PHP.
