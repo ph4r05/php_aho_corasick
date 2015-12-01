@@ -49,6 +49,7 @@ static zend_function_entry ahocorasick_functions[] = {
     PHP_FE(ahocorasick_init, NULL)
     PHP_FE(ahocorasick_deinit, NULL)
     PHP_FE(ahocorasick_isValid, NULL)
+    PHP_FE(ahocorasick_finalize, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -85,6 +86,23 @@ zend_module_entry ahocorasick_module_entry = {
 static void php_ahocorasick_init_globals(zend_ahocorasick_globals *ahocorasick_globals)
 {
         return;
+}
+
+/**
+ * Finalizes searching trie if was not finalized.
+ */
+static int php_ac_finalize(ahoMasterStruct * ahoMaster){
+    if (ahoMaster == NULL
+        || ahoMaster->init_ok != 1
+        || ahoMaster->ac_finalized == 1)
+    {
+        return 0;
+    }
+
+    ahoMaster->ac_finalized = 1;
+    //*** 5. Finalize automata (no more patterns will be added).
+    ac_trie_finalize (ahoMaster->acap);
+    return 1;
 }
     
 PHP_RINIT_FUNCTION(ahocorasick)
@@ -229,7 +247,7 @@ PHP_FUNCTION(ahocorasick_isValid)
     
     // fetch resource passed as parameter
     ahoMaster = (ahoMasterStruct*) zend_fetch_resource(&ahostruct TSRMLS_CC, -1, NULL, NULL, 1, le_ahostruct_master);
-    if (ahoMaster==NULL){        
+    if (ahoMaster==NULL || ahoMaster->init_ok != 1){
         RETURN_FALSE;
     } else {
         RETURN_TRUE;
@@ -261,18 +279,23 @@ PHP_FUNCTION(ahocorasick_match)
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid resource.");
         RETURN_FALSE;
     }
-    
-    // at first, obtain also lower case variant
-    normal = Z_STRVAL_P(uservar);
-    // strtolower is disabled now, exact match is required
-#ifdef AHOCORASICK_USE_LOWER
-    lowered = mb_strtolower(Z_STRVAL_P(uservar));
-#endif
 
-    //*** 6. Set input text
+    if (ahoMaster->init_ok != 1){
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Not initialized.");
+        RETURN_FALSE;
+    }
+
+    // finalize trie if not finalized already
+    php_ac_finalize(ahoMaster);
+
+    normal = Z_STRVAL_P(uservar);
 #ifdef AHOCORASICK_USE_LOWER
+    // at first, obtain also lower case variant
+    // strtolower is disabled now, exact match is required
+    lowered = mb_strtolower(Z_STRVAL_P(uservar));
     tmp_text.astring = lowered;
 #else
+    //*** 6. Set input text
     tmp_text.astring = normal;
 #endif
     tmp_text.length = Z_STRLEN_P(uservar);
@@ -313,6 +336,7 @@ PHP_FUNCTION(ahocorasick_deinit)
     }
     
     // delete now
+    php_ac_finalize(ahoMaster);
     zend_list_delete(Z_LVAL_P(ahostruct));
     RETURN_TRUE;
 }
@@ -320,7 +344,8 @@ PHP_FUNCTION(ahocorasick_deinit)
 /**
  * Initializes AhoCorasick search structure with passed data
  * @param 
- * @return 
+ * @return
+ * TODO: add option to add multiple patterns later, after init. finalize individually or on first matching call.
  */
 PHP_FUNCTION(ahocorasick_init)
 {
@@ -498,14 +523,13 @@ PHP_FUNCTION(ahocorasick_init)
         // add this pattern to trie. copy pattern to internal memory.
         ac_trie_add(acap, &tmp_patt, 1);
     }
-
-    //*** 5. Finalize automata (no more patterns will be added).
-    ac_trie_finalize (acap);
     
     // create resource in holder structure, fill with data, return
     ahoMasterStruct * ahomaster = emalloc(sizeof(ahoMasterStruct));
     // pass ACAP object - holding aho automaton
     ahomaster->acap = acap;
+    ahomaster->ac_finalized = 0;
+    ahomaster->init_ok = 1;
     // now store pointers to allocated strings in memory - for aho struct in memory
     ahomaster->ahostructbuff = ahostructbuff;
     ahomaster->ahobufflen = array_count;
@@ -516,4 +540,30 @@ PHP_FUNCTION(ahocorasick_init)
     // Keep in mind that we are not freeing strings allocated in memory, it is 
     // still used internally in aho structure, this free is postponed to releasing
     // aho structure.
+}
+
+/**
+ * Finalizes aho corasick search structure
+ * @param
+ * @return
+ */
+PHP_FUNCTION(ahocorasick_finalize)
+{
+    zval *ahostruct;
+    ahoMasterStruct * ahoMaster;
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &ahostruct) == FAILURE) {
+        RETURN_NULL();
+    }
+
+    // fetch resource passed as parameter
+    ahoMaster = (ahoMasterStruct*) zend_fetch_resource(&ahostruct TSRMLS_CC, -1, NULL, NULL, 1, le_ahostruct_master);
+    if (ahoMaster==NULL){
+        RETURN_FALSE;
+    } else {
+        if (php_ac_finalize(ahoMaster)) {
+            RETURN_TRUE;
+        } else {
+            RETURN_FALSE;
+        }
+    }
 }

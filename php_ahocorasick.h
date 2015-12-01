@@ -76,6 +76,10 @@ typedef struct _ahostruct {
 typedef struct _ahoMasterStruct {
     // aho corasick main search tree
     AC_TRIE_t * acap;
+    // if structure was finalized, is set to 1
+    unsigned char ac_finalized;
+    // if initialization was ok, is set to 1.
+    unsigned char init_ok;
     // string buffer for aho corasick (pointers to memory)
     ahostruct ** ahostructbuff;
     // length of buffer array above
@@ -92,6 +96,7 @@ PHP_FUNCTION(ahocorasick_match);
 PHP_FUNCTION(ahocorasick_init);
 PHP_FUNCTION(ahocorasick_deinit);
 PHP_FUNCTION(ahocorasick_isValid);
+PHP_FUNCTION(ahocorasick_finalize);
 extern zend_module_entry ahocorasick_module_entry;
 #define phpext_hello_ptr &ahocorasick_module_entry
 
