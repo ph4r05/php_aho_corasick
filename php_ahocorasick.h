@@ -67,7 +67,7 @@ typedef struct _ahostruct {
  */
 typedef struct _ahoMasterStruct {
     // aho corasick main search tree
-    AC_AUTOMATA_t * acap;
+    AC_TRIE_t * acap;
     // string buffer for aho corasick (pointers to memory)
     ahostruct ** ahostructbuff;
     // length of buffer array above

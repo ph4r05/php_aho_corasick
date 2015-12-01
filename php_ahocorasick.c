@@ -94,7 +94,7 @@ static void php_ahostruct_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
     ahoMasterStruct *aho = (ahoMasterStruct*)rsrc->ptr;
     if (aho) {
         // release automata here
-        ac_automata_release(aho->acap);
+        ac_trie_release(aho->acap);
         // now release strings kept inside aho structure
         for (i=0; i<aho->ahobufflen; i++){
             // at first release strings
@@ -167,14 +167,20 @@ int match_handler(AC_MATCH_t * m, void * param)
         return 0;
     }
 
-    for (j = 0; j < m->match_num; j++) {
+    for (j = 0; j < m->size; j++) {
         // dump found matches to result array
         ALLOC_INIT_ZVAL(mysubarray);
         array_init(mysubarray);
         add_assoc_long(mysubarray, "pos", m->position);
-        add_assoc_long(mysubarray, "keyIdx", m->patterns[j].rep.number);
-        add_assoc_string(mysubarray, "key", m->patterns[j].rep.stringy, 1);
-        add_assoc_string(mysubarray, "value", m->patterns[j].astring, 1);
+
+        if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
+            add_assoc_string(mysubarray, "key", (char*)m->patterns[j].id.u.stringy, 1);
+        } else {
+            add_assoc_long(mysubarray, "keyIdx", m->patterns[j].id.u.number);
+        }
+
+        add_assoc_string(mysubarray, "value", (char*)m->patterns[j].ptext.astring, 1);
+
         // add to aggregate array
         add_next_index_zval(myp->resultArray, mysubarray);
     }
@@ -238,13 +244,7 @@ PHP_FUNCTION(ahocorasick_match)
 #ifdef AHOCORASICK_USE_LOWER
     lowered = mb_strtolower(Z_STRVAL_P(uservar));
 #endif
-    
-    //*** Reset automata at first - clean position
-    /** if you want to do another search with same automata
-      * you must reset automata.
-      */
-    ac_automata_reset(ahoMaster->acap);
-    
+
     //*** 6. Set input text
 #ifdef AHOCORASICK_USE_LOWER
     tmp_text.astring = lowered;
@@ -264,12 +264,7 @@ PHP_FUNCTION(ahocorasick_match)
     my_param.retVal = findAll ? 0:1;
     
     //*** 7. Do search
-    ac_automata_search(ahoMaster->acap, &tmp_text, (void *)(&my_param));
-    /* here we pass 0 to our callback function.
-     * if there are variables to pass to call-back function,
-     * you can define a struct that enclose those variables and
-     * send the pointer of the struct as a parameter.
-    **/
+    ac_trie_search(ahoMaster->acap, &tmp_text, 0, match_handler, (void *)(&my_param));
 }
 
 /**
@@ -410,27 +405,34 @@ PHP_FUNCTION(ahocorasick_init)
     unsigned int i;
 
     //*** 2. Define AC variables: AC_AUTOMATA_t *, AC_PATTERN_t, and AC_TEXT_t
-    AC_AUTOMATA_t * acap;
+    AC_TRIE_t * acap;
     AC_PATTERN_t tmp_patt;
     AC_TEXT_t tmp_text;
 
     //*** 3. Get a new automata
-    acap = ac_automata_init (match_handler);
+    acap = ac_trie_create();
 
     //*** 4. add patterns to automata
     for (i=0; i<array_count; i++){
         // search string
-        tmp_patt.astring = ahostructbuff[i]->value;
-        tmp_patt.length = ahostructbuff[i]->valueLen;
+        tmp_patt.ptext.astring = ahostructbuff[i]->value;
+        tmp_patt.ptext.length = ahostructbuff[i]->valueLen;
+
+        //The replacement pattern is not applicable in this program, so better
+        //to initialize it with 0/
+        tmp_patt.rtext.astring = NULL;
+        tmp_patt.rtext.length = 0;
+
         // representative string (key)
-        tmp_patt.rep.number = i+1; // optional
-        tmp_patt.rep.stringy = ahostructbuff[i]->key;
+        tmp_patt.id.u.stringy = ahostructbuff[i]->key;
+        tmp_patt.id.type = AC_PATTID_TYPE_STRING;
+
         // add this pattern to automata
-        ac_automata_add(acap, &tmp_patt);
+        ac_trie_add(acap, &tmp_patt, 0);
     }
 
     //*** 5. Finalize automata (no more patterns will be added).
-    ac_automata_finalize (acap);
+    ac_trie_finalize (acap);
     
     // create resource in holder structure, fill with data, return
     ahoMasterStruct * ahomaster = emalloc(sizeof(ahoMasterStruct));
