@@ -11,11 +11,15 @@ $data = array(
 // initialize search structure
 $c = ahocorasick_init($data);
 // perform search 1
-$d1 = ahocorasick_match("alFABETA gammadelta delta delta!", $c);
+$str1 = "alFABETA gammadelta delta delta!";
+$d1 = ahocorasick_match($str1, $c);
 // perform search 2
-$d2 = ahocorasick_match("alfa zeta omegaomegalfa", $c);
+$str2 = "alfa zeta omegaomegalfa";
+$d2 = ahocorasick_match($str2, $c);
 // deinitialize search structure (will free memory)
 ahocorasick_deinit($c);
 
+echo "AhoCorasick match for ahocorasick_match(\"$str1\", c): ";
 var_dump($d1);
+echo "AhoCorasick match for ahocorasick_match(\"$str2\", c): ";
 var_dump($d2);

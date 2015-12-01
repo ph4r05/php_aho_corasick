@@ -12,24 +12,42 @@ $data = array(
 	     );
 
 $c = ahocorasick_init($data);
+echo "AhoCorasick struct: ";
 var_dump($c);
 
-$d = ahocorasick_match("alFABETA gammadelta delta delta!", $c);
+$str = "alFABETA gammadelta delta delta!";
+$d = ahocorasick_match($str, $c);
+echo "AhoCorasick match for ahocorasick_match(\"$str\", c): ";
 var_dump($d);
 
-$d = ahocorasick_match("alFABETAABECEDAAAA!", $c);
+$str = "alFABETAABECEDAAAA!";
+$d = ahocorasick_match($str, $c);
+echo "AhoCorasick match for ahocorasick_match(\"$str\", c): ";
 var_dump($d);
 
-$d = ahocorasick_match("alFABETAABECEDAAAA!", $c, false);
+$str = "alFABETAABECEDAAAA!";
+$d = ahocorasick_match($str, $c, false);
+echo "AhoCorasick match for ahocorasick_match(\"$str\", c, false): ";
 var_dump($d);
 
-$d = ahocorasick_match("alFABETAABECEDAAAA!", $c, true);
+$str = "alFABETAABECEDAAAA!";
+$d = ahocorasick_match($str, $c, true);
+echo "AhoCorasick match for ahocorasick_match(\"$str\", c, true): ";
 var_dump($d);
 
+echo "AhoCorasick isValid(c): ";
 var_dump(ahocorasick_isValid($c));
+
+echo "AhoCorasick deinit(c): ";
 var_dump(ahocorasick_deinit($c));
+
+echo "AhoCorasick struct: ";
 var_dump($c);
+
 if ($c){
+	echo "AhoCorasick isValid(c): ";
 	var_dump(ahocorasick_isValid($c));
+
+	echo "AhoCorasick deinit(c): ";
 	var_dump(ahocorasick_deinit($c));
 }
