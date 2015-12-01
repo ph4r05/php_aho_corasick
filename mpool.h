@@ -26,7 +26,7 @@
 #endif
 
 #ifndef AC_MFREE
-#define free
+#define AC_MFREE free
 #endif
 
 #ifdef	__cplusplus
