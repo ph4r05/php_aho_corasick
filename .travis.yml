@@ -1,6 +1,9 @@
 # see http://about.travis-ci.org/docs/user/languages/php/ for more hints
 language: php
 
+# Use container based infrastructure for Travis
+sudo: false
+
 # list any PHP version you want to test against
 php:
   # using major version aliases
@@ -15,8 +18,15 @@ php:
   # aliased to a recent hhvm version
   - hhvm
 
-install:
-  - sudo apt-get install -qq g++-4.8 uuid-dev build-essential autoconf php5-dev
+addons:
+  apt:
+    packages:
+    - uuid-dev
+    - build-essential
+    - autoconf
+    - php5-dev
+    - cmake
+    - time
 
 script: ./build.sh
 
