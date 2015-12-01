@@ -21,6 +21,8 @@
 #ifndef _MPOOL_H_
 #define	_MPOOL_H_
 
+#include "acmem.h"
+
 #ifndef AC_MALLOC
 #define AC_MALLOC malloc
 #endif
