@@ -420,8 +420,8 @@ PHP_FUNCTION(ahocorasick_init)
                 zend_hash_move_forward_ex(arr_hash_sub, &pointer_sub)) {
             zval temp;
             char *key;
-            int key_len;
-            long index;
+            unsigned int key_len;
+            unsigned long index;
             // flags of found keys
             unsigned char keyFound=0;
 
@@ -451,8 +451,8 @@ PHP_FUNCTION(ahocorasick_init)
             // if boolean value -> process
             if (keyFound==4){
                 // convert to boolean
-                int bool = Z_BVAL(temp);
-                tmpStruct->ignoreCase = bool;
+                int tmpBool = Z_BVAL(temp);
+                tmpStruct->ignoreCase = tmpBool;
             }
             
             // string value -> process
@@ -660,8 +660,8 @@ PHP_FUNCTION(hello_array_strings)
 
         zval temp;
         char *key;
-        int key_len;
-        long index;
+        unsigned int key_len;
+        unsigned long index;
 
         if (zend_hash_get_current_key_ex(arr_hash, &key, &key_len, &index, 0, &pointer) == HASH_KEY_IS_STRING) {
             PHPWRITE(key, key_len);
@@ -841,7 +841,7 @@ PHP_FUNCTION(hello_person_new)
     }
 
     if (age < 0 || age > 255) {
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Nonsense age (%d) given, person resource not created.", age);
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Nonsense age (%ld) given, person resource not created.", age);
         RETURN_FALSE;
     }
 
@@ -871,12 +871,12 @@ PHP_FUNCTION(hello_person_pnew)
     }
 
     if (age < 0 || age > 255) {
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Nonsense age (%d) given, person resource not created.", age);
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Nonsense age (%ld) given, person resource not created.", age);
         RETURN_FALSE;
     }
 
     /* Look for an established resource */
-    key_len = spprintf(&key, 0, "hello_person_%s_%d", name, age);
+    key_len = spprintf(&key, 0, "hello_person_%s_%ld", name, age);
     if (zend_hash_find(&EG(persistent_list), key, key_len + 1, (void**)&le) == SUCCESS) {
         /* An entry for this person already exists */
         ZEND_REGISTER_RESOURCE(return_value, le->ptr, le_hello_person_persist);
@@ -914,7 +914,7 @@ PHP_FUNCTION(hello_person_greet)
 
     php_printf("Hello ");
     PHPWRITE(person->name, person->name_len);
-    php_printf("!According to my records, you are %d years old.", person->age);
+    php_printf("!According to my records, you are %ld years old.", person->age);
 
     RETURN_TRUE;
 }

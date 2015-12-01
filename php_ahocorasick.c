@@ -340,8 +340,8 @@ PHP_FUNCTION(ahocorasick_init)
                 zend_hash_move_forward_ex(arr_hash_sub, &pointer_sub)) {
             zval temp;
             char *key;
-            int key_len;
-            long index;
+            unsigned int key_len;
+            unsigned long index;
             // flags of found keys
             unsigned char keyFound=0;
 
@@ -371,8 +371,8 @@ PHP_FUNCTION(ahocorasick_init)
             // if boolean value -> process
             if (keyFound==4){
                 // convert to boolean
-                int bool = Z_BVAL(temp);
-                tmpStruct->ignoreCase = bool;
+                int tmpBool = Z_BVAL(temp);
+                tmpStruct->ignoreCase = tmpBool;
             }
             
             // string value -> process
