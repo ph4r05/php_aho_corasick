@@ -62,9 +62,9 @@ static struct mpool_block *mpool_new_block (size_t size)
     if (!size) 
         size = MPOOL_BLOCK_SIZE;
     
-    block = (struct mpool_block *) malloc (sizeof(struct mpool_block));
+    block = (struct mpool_block *) AC_MALLOC (sizeof(struct mpool_block));
     
-    block->bp = block->free = malloc(size);
+    block->bp = block->free = AC_MALLOC(size);
     block->size = size;
     block->next = NULL;
     
@@ -81,7 +81,7 @@ struct mpool *mpool_create (size_t size)
 {
     struct mpool *ret;
     
-    ret = malloc (sizeof(struct mpool));
+    ret = AC_MALLOC (sizeof(struct mpool));
     ret->block = mpool_new_block(size);
     
     return ret;
@@ -100,7 +100,7 @@ void mpool_free (struct mpool *pool)
         return;
     
     if (!pool->block) {
-        free(pool);
+        AC_MFREE(pool);
 	return;
     }
     
@@ -108,12 +108,12 @@ void mpool_free (struct mpool *pool)
     
     while (p) {
 	p_next = p->next;
-	free(p->bp);
-	free(p);
+    AC_MFREE(p->bp);
+    AC_MFREE(p);
 	p = p_next;
     }
-    
-    free(pool);
+
+    AC_MFREE(pool);
 }
 
 /**

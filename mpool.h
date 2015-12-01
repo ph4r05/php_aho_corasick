@@ -21,6 +21,14 @@
 #ifndef _MPOOL_H_
 #define	_MPOOL_H_
 
+#ifndef AC_MALLOC
+#define AC_MALLOC malloc
+#endif
+
+#ifndef AC_MFREE
+#define free
+#endif
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
