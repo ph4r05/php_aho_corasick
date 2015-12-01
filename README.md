@@ -22,7 +22,7 @@ Aho-Corasick C library is wrapped as PHP extension loadable to PHP.
 
 Build
 =====
-```
+```bash
 phpize
 ./configure --enable-ahocorasick
 make
@@ -35,7 +35,7 @@ This extension is case sensitive, thus if you want case insensitive, convert eve
 If you want to detect equality, compare also length of needle and haystack (for example).
 
 test.php:
-```
+```php
 $data = array(
   	array('key'=>'ab', 'value'=>'alfa', 'ignoreCase'=>true),
 		array('key'=>'ac', 'value'=>'beta', 'ignoreCase'=>true),
@@ -59,7 +59,7 @@ var_dump($d2);
 ```
 
 Call with:
-```
+```bash
 php -d extension=modules/ahocorasick.so -f test.php
 ```
 
