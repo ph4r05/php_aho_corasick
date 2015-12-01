@@ -1,5 +1,6 @@
 php_aho_corasick
 ================
+[![Build Status](https://travis-ci.org/ph4r05/php_aho_corasick.svg?branch=master)](https://travis-ci.org/ph4r05/php_aho_corasick)
 
 PHP extension implementing Aho-Corasick algorithm (see http://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_string_matching_algorithm ).
 
