@@ -4,10 +4,6 @@ language: php
 # list any PHP version you want to test against
 php:
   # using major version aliases
-  # aliased to 5.2.17
-  - 5.2
-  # aliased to 5.3.29
-  - 5.3
   # aliased to a recent 5.4.x version
   - 5.4
   # aliased to a recent 5.5.x version
@@ -18,11 +14,6 @@ php:
   - 7.0
   # aliased to a recent hhvm version
   - hhvm
-
-before_install:
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -qq
-  - composer self-update
 
 install:
   - sudo apt-get install -qq g++-4.8 uuid-dev build-essential autoconf php5-dev
