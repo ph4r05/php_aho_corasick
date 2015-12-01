@@ -1,62 +1,18 @@
 <?php
-echo "Going to init: \n";
-$aux1 = array(array("helloAuxObject", 41));
-$aux2 = 0x42;
-$aux3 = "simple-aux";
-
 $data = array(
-		array('key'=>'ab', 'value'=>'alfa'),
+  	array('key'=>'ab', 'value'=>'alfa'),
 		array('key'=>'ac', 'value'=>'beta'),
-		array('key'=>'ad', 'value'=>'gamma', 'aux'=>$aux2),
-		array('key'=>'ae', 'value'=>'delta', 'aux'=>$aux3),
-		array('key'=>'af', 'value'=>'zeta'),
+		array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1)),
+		array('key'=>'ae', 'value'=>'delta'),
+		array('id'=>0, 'value'=>'zeta'),
 		array('key'=>'ag', 'value'=>'omega'),
-		array('key'=>'ah', 'value'=>'lfa'),
-		array('id'=>42, 'value'=>'pie'),
-		array('value'=>'simple'),
-		array('value'=>'aux', 'aux'=>$aux1),
-		array('value'=>'ščř+éé'),
-		array('value'=>'éé'),
-);
-
+		array('value'=>'lfa')
+	     );
+// initialize search , returns resourceID for search structure
 $c = ahocorasick_init($data);
-$data = array(); // Memoty test.
-echo "AhoCorasick struct: ";
-var_dump($c);
+// perform search 1
+$d1 = ahocorasick_match("alFABETA gamma zetaomegaalfa!", $c);
+// deinitialize search structure (will free memory)
+ahocorasick_deinit($c);
 
-$str = "alFABETA gammadelta delta delta simple pie! aux ssščř+ééžž ččř é é-é éeéee éé";
-$d = ahocorasick_match($str, $c);
-echo "AhoCorasick match for ahocorasick_match(\"$str\", c): ";
-var_dump($d);
-
-$str = "alFABETAABECEDAAAA!";
-$d = ahocorasick_match($str, $c);
-echo "AhoCorasick match for ahocorasick_match(\"$str\", c): ";
-var_dump($d);
-
-$str = "alFABETAABECEDAAAA!";
-$d = ahocorasick_match($str, $c, false);
-echo "AhoCorasick match for ahocorasick_match(\"$str\", c, false): ";
-var_dump($d);
-
-$str = "alFABETAABECEDAAAA!";
-$d = ahocorasick_match($str, $c, true);
-echo "AhoCorasick match for ahocorasick_match(\"$str\", c, true): ";
-var_dump($d);
-
-echo "AhoCorasick isValid(c): ";
-var_dump(ahocorasick_isValid($c));
-
-echo "AhoCorasick deinit(c): ";
-var_dump(ahocorasick_deinit($c));
-
-echo "AhoCorasick struct: ";
-var_dump($c);
-
-if ($c){
-	echo "AhoCorasick isValid(c): ";
-	var_dump(ahocorasick_isValid($c));
-
-	echo "AhoCorasick deinit(c): ";
-	var_dump(ahocorasick_deinit($c));
-}
+var_dump($d1);

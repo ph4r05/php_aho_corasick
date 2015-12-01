@@ -17,7 +17,7 @@ function genRandomWord($alphabet, $length){
 }
 
 // generate random data
-$sampleCount = 5;
+$sampleCount = 10;
 $haystackSize = 256;
 $keySize = 2048;
 $randomBuffers = array();
@@ -29,7 +29,6 @@ for($i=0; $i < $keySize; $i++){
 for($i=0; $i < $haystackSize; $i++){
     $randomBuffers[$i] = genRandomWord("abcdef", 2048);
 }
-
 
 // do classical strpos search
 $overalTime=array();
@@ -46,10 +45,11 @@ for($j = 0; $j < $sampleCount; $j++){
     $sum += $curTime;
 }
 // average?
-printf("Classic search; sampleCount: %d; keySize: %d; time: %f\n\n", $sampleCount, $keySize, $sum/((float)$sampleCount));
-
+$avgNaive = $sum/((float)$sampleCount);
+printf("Classic search; sampleCount: %d; keySize: %d; time: %f\n\n", $sampleCount, $keySize, $avgNaive);
 
 // do advanced search - aho corasick
+$memStart = memory_get_usage();
 $overalTime=array();
 $sum = 0;
 for($j = 0; $j < $sampleCount; $j++){
@@ -58,20 +58,28 @@ for($j = 0; $j < $sampleCount; $j++){
     
     $data = array();    
     for($i=0; $i < $keySize; $i++){
-        $data[] = array('key'=>"".$i, 'value'=>$randomKeys[$i], 'ignoreCase'=>true);
+        $data[] = array('id'=>$i, 'value'=>$randomKeys[$i], 'aux' => $randomBuffers);
     }
     
     $c = ahocorasick_init($data);
     foreach($randomBuffers as $randomBuffer){
         $d = ahocorasick_match($randomBuffer, $c);
     }
+
     ahocorasick_deinit($c);
     
     $curTime = microtime(true) - $curTime;
     $sum += $curTime;
+
+    unset($data);
+    unset($d);
 }
-// average?
-printf("AhoCorasick search; sampleCount: %d; keySize: %d; time: %f\n\n", $sampleCount, $keySize, $sum/((float)$sampleCount));
 
+$memStop = memory_get_usage();
+$avgAho = $sum/((float)$sampleCount);
 
+printf("AhoCorasick search; sampleCount: %d; keySize: %d; timeAvg: %f s, totalTime: %f s, memory increase: %d B\n\n",
+    $sampleCount, $keySize, $avgAho, $sum, $memStop-$memStart);
+
+printf("AhoCorasick pattern matching is %f times faster than naive approach\n", $avgNaive/$avgAho);
 

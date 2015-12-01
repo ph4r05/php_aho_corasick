@@ -37,25 +37,22 @@ If you want to detect equality, compare also length of needle and haystack (for 
 test.php:
 ```php
 $data = array(
-  	array('key'=>'ab', 'value'=>'alfa', 'ignoreCase'=>true),
-		array('key'=>'ac', 'value'=>'beta', 'ignoreCase'=>true),
-		array('key'=>'ad', 'value'=>'gamma', 'ignoreCase'=>true),
-		array('key'=>'ae', 'value'=>'delta', 'ignoreCase'=>true),
-		array('key'=>'af', 'value'=>'zeta', 'ignoreCase'=>true),
-		array('key'=>'ag', 'value'=>'omega', 'ignoreCase'=>true),
-		array('key'=>'ah', 'value'=>'lfa', 'ignoreCase'=>true)
+  	array('key'=>'ab', 'value'=>'alfa'),
+		array('key'=>'ac', 'value'=>'beta'),
+		array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1)),
+		array('key'=>'ae', 'value'=>'delta'),
+		array('id'=>0, 'value'=>'zeta'),
+		array('key'=>'ag', 'value'=>'omega'),
+		array('value'=>'lfa')
 	     );
 // initialize search , returns resourceID for search structure
 $c = ahocorasick_init($data);
 // perform search 1
-$d1 = ahocorasick_match("alFABETA gammadelta delta delta!", $c);
-// perform search 2
-$d2 = ahocorasick_match("alfa zeta omegaomegalfa", $c);
+$d1 = ahocorasick_match("alFABETA gamma zetaomegaalfa!", $c);
 // deinitialize search structure (will free memory)
 ahocorasick_deinit($c);
 
 var_dump($d1);
-var_dump($d2);
 ```
 
 Call with:
@@ -65,127 +62,52 @@ php -d extension=modules/ahocorasick.so -f test.php
 
 Results with:
 ```
-array(4) {
+array(5) {
   [0]=>
   array(4) {
     ["pos"]=>
     int(14)
-    ["keyIdx"]=>
-    int(30536592)
     ["key"]=>
     string(2) "ad"
+    ["aux"]=>
+    array(1) {
+      [0]=>
+      int(1)
+    }
     ["value"]=>
     string(5) "gamma"
   }
   [1]=>
-  array(4) {
+  array(3) {
     ["pos"]=>
     int(19)
     ["keyIdx"]=>
-    int(30536696)
-    ["key"]=>
-    string(2) "ae"
-    ["value"]=>
-    string(5) "delta"
-  }
-  [2]=>
-  array(4) {
-    ["pos"]=>
-    int(25)
-    ["keyIdx"]=>
-    int(30536696)
-    ["key"]=>
-    string(2) "ae"
-    ["value"]=>
-    string(5) "delta"
-  }
-  [3]=>
-  array(4) {
-    ["pos"]=>
-    int(31)
-    ["keyIdx"]=>
-    int(30536696)
-    ["key"]=>
-    string(2) "ae"
-    ["value"]=>
-    string(5) "delta"
-  }
-}
-array(7) {
-  [0]=>
-  array(4) {
-    ["pos"]=>
-    int(4)
-    ["keyIdx"]=>
-    int(30536384)
-    ["key"]=>
-    string(2) "ab"
-    ["value"]=>
-    string(4) "alfa"
-  }
-  [1]=>
-  array(4) {
-    ["pos"]=>
-    int(4)
-    ["keyIdx"]=>
-    int(30537008)
-    ["key"]=>
-    string(2) "ah"
-    ["value"]=>
-    string(3) "lfa"
-  }
-  [2]=>
-  array(4) {
-    ["pos"]=>
-    int(9)
-    ["keyIdx"]=>
-    int(30536800)
-    ["key"]=>
-    string(2) "af"
+    int(0)
     ["value"]=>
     string(4) "zeta"
   }
+  [2]=>
+  array(3) {
+    ["pos"]=>
+    int(24)
+    ["key"]=>
+    string(2) "ag"
+    ["value"]=>
+    string(5) "omega"
+  }
   [3]=>
-  array(4) {
+  array(3) {
     ["pos"]=>
-    int(15)
-    ["keyIdx"]=>
-    int(30536904)
-    ["key"]=>
-    string(2) "ag"
-    ["value"]=>
-    string(5) "omega"
-  }
-  [4]=>
-  array(4) {
-    ["pos"]=>
-    int(20)
-    ["keyIdx"]=>
-    int(30536904)
-    ["key"]=>
-    string(2) "ag"
-    ["value"]=>
-    string(5) "omega"
-  }
-  [5]=>
-  array(4) {
-    ["pos"]=>
-    int(23)
-    ["keyIdx"]=>
-    int(30536384)
+    int(28)
     ["key"]=>
     string(2) "ab"
     ["value"]=>
     string(4) "alfa"
   }
-  [6]=>
-  array(4) {
+  [4]=>
+  array(2) {
     ["pos"]=>
-    int(23)
-    ["keyIdx"]=>
-    int(30537008)
-    ["key"]=>
-    string(2) "ah"
+    int(28)
     ["value"]=>
     string(3) "lfa"
   }
@@ -209,9 +131,10 @@ Principle:
 
 Results:
 ```
-Classic search; sampleCount: 5; keySize: 2048; time: 6.479004
-AhoCorasick search; sampleCount: 5; keySize: 2048; time: 0.107578
+Classic search; sampleCount: 10; keySize: 2048; time: 3.440944
+AhoCorasick search; sampleCount: 10; keySize: 2048; timeAvg: 0.055208 s, totalTime: 0.552079 s, memory increase: 272 B
+AhoCorasick pattern matching is 62.327031 times faster than naive approach
 ```
 
-Speedup: 60.2X compared to naive approach.
+Speedup: 62x compared to the naive approach.
 
