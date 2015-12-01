@@ -18,6 +18,7 @@ php:
   # aliased to a recent hhvm version
   - hhvm
 
+# https://docs.travis-ci.com/user/migrating-from-legacy
 addons:
   apt:
     packages:
