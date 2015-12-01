@@ -60,9 +60,11 @@ typedef struct _ahostruct {
     char *key;
     long keyId;
     enum ac_pattid_type keyType;
+    zval * zKey;
 
     char *value;
     int valueLen;
+    zval * zVal;
 
     int ignoreCase;
     zval * auxObj;
@@ -78,8 +80,6 @@ typedef struct _ahoMasterStruct {
     ahostruct ** ahostructbuff;
     // length of buffer array above
     long ahobufflen;
-    // just testing integer
-    int test;
 } ahoMasterStruct;
 
 #define PHP_AHOSTRUCT_MASTER_RES_NAME "Ahostruct master data"

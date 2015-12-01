@@ -106,12 +106,12 @@ static void php_ahostruct_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
         for (i=0; i<aho->ahobufflen; i++){
             // at first release strings
             if (aho->ahostructbuff[i]->key != NULL) {
-                efree(aho->ahostructbuff[i]->key);
+                zval_ptr_dtor(&(aho->ahostructbuff[i]->zKey));
                 aho->ahostructbuff[i]->key = NULL;
             }
 
             if (aho->ahostructbuff[i]->value != NULL) {
-                efree(aho->ahostructbuff[i]->value);
+                zval_ptr_dtor(&(aho->ahostructbuff[i]->zVal));
                 aho->ahostructbuff[i]->value = NULL;
             }
 
@@ -411,13 +411,9 @@ PHP_FUNCTION(ahocorasick_init)
 
             // Aux object
             if ((keyFound & 0x10) > 0){
-                zval *zv_dest;
-                ALLOC_ZVAL(zv_dest);
-                INIT_PZVAL_COPY(zv_dest, &temp);
-                zval_copy_ctor(zv_dest);
-
-                // TODO: do not copy, just pass the reference, increase ref count.
-                tmpStruct->auxObj = zv_dest;
+                // No copying using same reference.
+                tmpStruct->auxObj = *data_sub;
+                Z_ADDREF_P(*data_sub);
             }
             
             // ignoreCase - deprecated.
@@ -430,14 +426,17 @@ PHP_FUNCTION(ahocorasick_init)
             // key/value present -> process
             if ((keyFound & 0x3) > 0){
                 char * stmp = NULL;
-                // copy string
-                stmp = estrndup(Z_STRVAL(temp), Z_STRLEN(temp));
+                // Avoid string copy, use reference counting.
+                stmp = Z_STRVAL(temp);
+                Z_ADDREF_P(*data_sub);
                 if (keyFound == 0x1){
                     // key
+                    tmpStruct->zKey = *data_sub;
                     tmpStruct->key = stmp;
                     tmpStruct->keyType = AC_PATTID_TYPE_STRING;
                 } else if (keyFound == 0x2){
                     // value
+                    tmpStruct->zVal = *data_sub;
                     tmpStruct->value = stmp;
                     tmpStruct->valueLen = Z_STRLEN(temp);
                 }
@@ -505,8 +504,6 @@ PHP_FUNCTION(ahocorasick_init)
     
     // create resource in holder structure, fill with data, return
     ahoMasterStruct * ahomaster = emalloc(sizeof(ahoMasterStruct));
-    // just for testing
-    ahomaster->test=3;
     // pass ACAP object - holding aho automaton
     ahomaster->acap = acap;
     // now store pointers to allocated strings in memory - for aho struct in memory
