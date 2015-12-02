@@ -122,7 +122,7 @@ My setup generates random haystacks and needles from alphabet="abcdef". There is
 Search structure construction is conted to time measurements.
 
 Script generates:
-  * 256 random haystacks of size 2048 characters
+  * 256 random haystacks of size 8192 characters
   * 2048 needles with 16 characters.
 
 Principle:
@@ -131,10 +131,10 @@ Principle:
 
 Results:
 ```
-Classic search; sampleCount: 10; keySize: 2048; time: 3.440944
-AhoCorasick search; sampleCount: 10; keySize: 2048; timeAvg: 0.055208 s, totalTime: 0.552079 s, memory increase: 272 B
-AhoCorasick pattern matching is 62.327031 times faster than naive approach
+Classic search; sampleCount: 10; keySize: 2048; timeAvg: 13.060877
+AhoCorasick search; sampleCount: 10; keySize: 2048; timeAvg: 0.174326 s, totalTime: 1.743264 s, memory increase: 272 B
+AhoCorasick pattern matching is 74.921962 times faster than naive approach
 ```
 
-Speedup: 62x compared to the naive approach.
+Speedup: 74x compared to the naive approach.
 

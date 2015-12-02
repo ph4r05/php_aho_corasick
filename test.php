@@ -10,6 +10,8 @@ $data = array(
 	     );
 // initialize search , returns resourceID for search structure
 $c = ahocorasick_init($data);
+unset($data);
+
 // perform search 1
 $d1 = ahocorasick_match("alFABETA gamma zetaomegaalfa!", $c);
 // deinitialize search structure (will free memory)

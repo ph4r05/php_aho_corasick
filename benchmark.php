@@ -27,7 +27,7 @@ for($i=0; $i < $keySize; $i++){
 }
 
 for($i=0; $i < $haystackSize; $i++){
-    $randomBuffers[$i] = genRandomWord("abcdef", 2048);
+    $randomBuffers[$i] = genRandomWord("abcdef", 8192);
 }
 
 // do classical strpos search
@@ -46,7 +46,7 @@ for($j = 0; $j < $sampleCount; $j++){
 }
 // average?
 $avgNaive = $sum/((float)$sampleCount);
-printf("Classic search; sampleCount: %d; keySize: %d; time: %f\n\n", $sampleCount, $keySize, $avgNaive);
+printf("Classic search; sampleCount: %d; keySize: %d; timeAvg: %f\n\n", $sampleCount, $keySize, $avgNaive);
 
 // do advanced search - aho corasick
 $memStart = memory_get_usage();
