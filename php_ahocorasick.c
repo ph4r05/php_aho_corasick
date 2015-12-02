@@ -40,7 +40,7 @@
 #include "actypes.h"
 
 // counter for aho struct resources
-int le_ahostruct_master;
+int le_ahocorasick_master;
 
 ZEND_DECLARE_MODULE_GLOBALS(ahocorasick)
 
@@ -92,7 +92,7 @@ static void php_ahocorasick_init_globals(zend_ahocorasick_globals *ahocorasick_g
 /**
  * Finalizes searching trie if it was not finalized.
  */
-static inline int php_ac_finalize(ahoMasterStruct * ahoMaster){
+static inline int php_ahocorasick_finalize(ahocorasick_master_t * ahoMaster){
     if (ahoMaster == NULL
         || ahoMaster->init_ok != 1
         || ahoMaster->ac_finalized == 1)
@@ -109,7 +109,7 @@ static inline int php_ac_finalize(ahoMasterStruct * ahoMaster){
 /**
  * Resets all pattern fields. Does not perform any deallocation.
  */
-static inline int php_ac_reset_pattern(ahostruct * tmpStruct){
+static inline int php_ahocorasick_reset_pattern(ahocorasick_pattern_t * tmpStruct){
     if (tmpStruct == NULL){
         return -1;
     }
@@ -128,7 +128,7 @@ static inline int php_ac_reset_pattern(ahostruct * tmpStruct){
 /**
  * Deallocates all memory related to the given pattern.
  */
-static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
+static inline int php_ahocorasick_dealloc_pattern(ahocorasick_pattern_t * tmpStruct){
     if (tmpStruct == NULL){
         return -1;
     }
@@ -150,15 +150,15 @@ static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
         tmpStruct->zVal = NULL;
     }
 
-    php_ac_reset_pattern(tmpStruct);
+    php_ahocorasick_reset_pattern(tmpStruct);
     return 0;
 }
 
 /**
- * Reads single pattern definition, construct ahostruct representation of pattern.
+ * Reads single pattern definition, construct ahocorasick_pattern_t representation of pattern.
  */
-static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub TSRMLS_DC) {
-    php_ac_reset_pattern(tmpStruct);
+static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStruct, HashTable * arr_hash_sub TSRMLS_DC) {
+    php_ahocorasick_reset_pattern(tmpStruct);
 
     // iterate over sub array
     int returnCode = 0;
@@ -260,54 +260,54 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
     }
 
     // Otherwise deallocate this entry.
-    php_ac_dealloc_pattern(tmpStruct);
+    php_ahocorasick_dealloc_pattern(tmpStruct);
     return returnCode;
 }
 
 /**
  * Adds the given list to the pattern list
  */
-static inline int php_ac_add_patterns(ahoMasterStruct * master, ahostruct * tmpStruct, ahostruct * tmpStructLast, long sublistSize){
+static inline int php_ahocorasick_add_patterns(ahocorasick_master_t * master, ahocorasick_pattern_t * tmpStruct, ahocorasick_pattern_t * tmpStructLast, long sublistSize){
     if (master == NULL || tmpStruct == NULL){
         return -1;
     }
 
     tmpStruct->prev = NULL;
-    tmpStructLast->next = master->ahostructbuff;
+    tmpStructLast->next = master->patterns;
 
-    if (master->ahostructbuff){
-        master->ahostructbuff->prev = tmpStructLast;
+    if (master->patterns){
+        master->patterns->prev = tmpStructLast;
     }
-    master->ahostructbuff = tmpStruct;
-    master->ahobufflen += sublistSize;
+    master->patterns = tmpStruct;
+    master->pattern_count += sublistSize;
     return 0;
 }
 
 /**
  * Adds given pattern to the doubly linked list. Does not copy memory, embbeds given structure directly to the list.
  */
-static inline int php_ac_add_pattern(ahoMasterStruct * master, ahostruct * tmpStruct){
-    return php_ac_add_patterns(master, tmpStruct, tmpStruct, 1);
+static inline int php_ahocorasick_add_pattern(ahocorasick_master_t * master, ahocorasick_pattern_t * tmpStruct){
+    return php_ahocorasick_add_patterns(master, tmpStruct, tmpStruct, 1);
 }
 
 /**
  * Releases all associated memory in linked list of patterns
  */
-static inline int php_ac_release_patterns(ahoMasterStruct * master){
+static inline int php_ahocorasick_release_patterns(ahocorasick_master_t * master){
     if (master == NULL){
         return -1;
     }
 
-    ahostruct * p0 = master->ahostructbuff;
+    ahocorasick_pattern_t * p0 = master->patterns;
     while(p0){
-        ahostruct * next = p0->next;
-        php_ac_dealloc_pattern(p0);
+        ahocorasick_pattern_t * next = p0->next;
+        php_ahocorasick_dealloc_pattern(p0);
         efree(p0);
         p0 = next;
     }
 
-    master->ahostructbuff = NULL;
-    master->ahobufflen = 0;
+    master->patterns = NULL;
+    master->pattern_count = 0;
 
     return 0;
 }
@@ -315,7 +315,7 @@ static inline int php_ac_release_patterns(ahoMasterStruct * master){
 /**
  * Reads array of patterns, adds them to the search trie.
  */
-static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * arr_hash TSRMLS_DC){
+static inline int php_ahocorasick_process_patterns(ahocorasick_master_t * master, HashTable * arr_hash TSRMLS_DC){
     int pattern_processing_status = 0;
     zval *arr;
     zval **data;
@@ -323,14 +323,14 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
     int array_count;
     int curIdx = 0;
 
-    ahostruct * p0 = NULL;
-    ahostruct * p1 = NULL;
-    ahostruct * prevPattern = NULL;
-    ahostruct * lastPattern = NULL;
+    ahocorasick_pattern_t * p0 = NULL;
+    ahocorasick_pattern_t * p1 = NULL;
+    ahocorasick_pattern_t * prevPattern = NULL;
+    ahocorasick_pattern_t * lastPattern = NULL;
     array_count = zend_hash_num_elements(arr_hash);
     // initialize buffer array
-    //ahostruct ** ahostructbuff = (ahostruct ** ) emalloc(sizeof(*ahostructbuff) * array_count);
-    //memset(ahostructbuff, 0, sizeof(*ahostructbuff) * array_count);
+    //ahocorasick_pattern_t ** ahocorasick_pattern_tbuff = (ahocorasick_pattern_t ** ) emalloc(sizeof(*ahocorasick_pattern_tbuff) * array_count);
+    //memset(ahocorasick_pattern_tbuff, 0, sizeof(*ahocorasick_pattern_tbuff) * array_count);
 
     // iterate input initialized array
     for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer);
@@ -345,7 +345,7 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
         }
 
         // now we know that element is another array - iterate over it again and gain needed info
-        ahostruct * tmpStruct = (ahostruct *) emalloc(sizeof(ahostruct));
+        ahocorasick_pattern_t * tmpStruct = (ahocorasick_pattern_t *) emalloc(sizeof(ahocorasick_pattern_t));
         if (curIdx == 0){
             lastPattern = tmpStruct;
         }
@@ -360,7 +360,7 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
 
         // iterate over sub array
         HashTable *arr_hash_sub = Z_ARRVAL_P(*data);
-        int status_code = php_ac_process_pattern(tmpStruct, arr_hash_sub TSRMLS_CC);
+        int status_code = php_ahocorasick_process_pattern(tmpStruct, arr_hash_sub TSRMLS_CC);
         if (status_code != 0){
             pattern_processing_status = -1;
             break;
@@ -372,7 +372,7 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
         p0 = prevPattern;
         while(p0){
             p1 = p0->next;
-            php_ac_dealloc_pattern(p0);
+            php_ahocorasick_dealloc_pattern(p0);
             efree(p0);
             p0 = p1;
         }
@@ -390,7 +390,7 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
     //
 
     // Add all patterns at once to the internal data structures
-    php_ac_add_patterns(master, prevPattern, lastPattern, curIdx);
+    php_ahocorasick_add_patterns(master, prevPattern, lastPattern, curIdx);
 
     p0 = prevPattern;
     while(p0){
@@ -426,62 +426,41 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
     return pattern_processing_status;
 }
 
-PHP_RINIT_FUNCTION(ahocorasick)
-{
-    return SUCCESS;
-}
-
 /**
- * Destructor of ahostruct resource
+ * Destructor of ahocorasick_pattern_t resource
  */
-static void php_ahostruct_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+static void php_ahocorasick_pattern_t_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
     long i=0;
-    ahoMasterStruct *aho = (ahoMasterStruct*)rsrc->ptr;
+    ahocorasick_master_t *aho = (ahocorasick_master_t*)rsrc->ptr;
     if (aho == NULL){
         return;
     }
 
-    if (aho->ahostructbuff != NULL) {
+    if (aho->patterns != NULL) {
         // release automata here
         if (aho->acap != NULL) {
             ac_trie_release(aho->acap);
         }
 
-        php_ac_release_patterns(aho);
+        php_ahocorasick_release_patterns(aho);
     }
 
     // release holder structure
     efree(aho);
 }
 
-PHP_MINIT_FUNCTION(ahocorasick)
-{
-    // destruction of ahostruct master
-    le_ahostruct_master = zend_register_list_destructors_ex(php_ahostruct_master_dtor, NULL, PHP_AHOSTRUCT_MASTER_RES_NAME, module_number);    
-    
-    //ZEND_INIT_MODULE_GLOBALS(ahocorasick, php_ahocorasick_init_globals, NULL);
-    //REGISTER_INI_ENTRIES();
-    return SUCCESS;
-}
-
-PHP_MSHUTDOWN_FUNCTION(ahocorasick)
-{
-    //UNREGISTER_INI_ENTRIES();
-    return SUCCESS;
-}
-
 #ifdef AHOCORASICK_USE_LOWER
 /**
- * Invokes PHP function that converts string to lower case. 
- * Calling mb_strtolower didn't work properly because of unavailability 
+ * Invokes PHP function that converts string to lower case.
+ * Calling mb_strtolower didn't work properly because of unavailability
  * of php_unicode.h, thus we are using call_user_function.
- * 
+ *
  * Calls PHP function mb_strtolower from user space
  */
-char * mb_strtolower(char * input TSRMLS_DC){
+static char * php_ahocorasick_mb_strtolower(char * input TSRMLS_DC){
     zval ret, function_name, *params[1];
-    
+
     // construct function to call
     ZVAL_STRING(&function_name, "mb_strtolower", 0);
     // construct parameter to pass to target function
@@ -499,14 +478,14 @@ char * mb_strtolower(char * input TSRMLS_DC){
 /**
  * AhoCorasick callback handler - MATCH_CALBACK_t type
  */
-int match_handler(AC_MATCH_t * m, void * param)
+static int match_handler(AC_MATCH_t * m, void * param)
 {
     // variable to hold sub array - one found result
     zval * mysubarray;
     unsigned int j;
 
     /* example of sending parameter to call-back function */
-    struct aho_callback_payload * myp = (struct aho_callback_payload *) param;
+    struct ahocorasick_callback_payload_t * myp = (struct ahocorasick_callback_payload_t *) param;
     if (myp->resultArray == NULL) {
         // invalid condition - result array not initialized
         return 0;
@@ -518,7 +497,7 @@ int match_handler(AC_MATCH_t * m, void * param)
         array_init(mysubarray);
         add_assoc_long(mysubarray, "pos", m->position);
 
-        ahostruct * curPattern = (ahostruct *) m->patterns[j].aux;
+        ahocorasick_pattern_t * curPattern = (ahocorasick_pattern_t *) m->patterns[j].aux;
         if (curPattern == NULL){
             continue;
         }
@@ -549,6 +528,27 @@ int match_handler(AC_MATCH_t * m, void * param)
     return myp->retVal == 0 ? 0 : 1;
 }
 
+PHP_RINIT_FUNCTION(ahocorasick)
+{
+    return SUCCESS;
+}
+
+PHP_MINIT_FUNCTION(ahocorasick)
+{
+    // destruction of ahocorasick_pattern_t master
+    le_ahocorasick_master = zend_register_list_destructors_ex(php_ahocorasick_pattern_t_master_dtor, NULL, PHP_AHOSTRUCT_MASTER_RES_NAME, module_number);
+    
+    //ZEND_INIT_MODULE_GLOBALS(ahocorasick, php_ahocorasick_init_globals, NULL);
+    //REGISTER_INI_ENTRIES();
+    return SUCCESS;
+}
+
+PHP_MSHUTDOWN_FUNCTION(ahocorasick)
+{
+    //UNREGISTER_INI_ENTRIES();
+    return SUCCESS;
+}
+
 /**
  * Returns whether current AhoCorasick resource is valid
  * @param 
@@ -556,14 +556,14 @@ int match_handler(AC_MATCH_t * m, void * param)
  */
 PHP_FUNCTION(ahocorasick_isValid)
 {
-    zval *ahostruct;
-    ahoMasterStruct * ahoMaster;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &ahostruct) == FAILURE) {
+    zval *zval_aho_master;
+    ahocorasick_master_t * ahoMaster;
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
         RETURN_NULL();
     }
     
     // fetch resource passed as parameter
-    ahoMaster = (ahoMasterStruct*) zend_fetch_resource(&ahostruct TSRMLS_CC, -1, NULL, NULL, 1, le_ahostruct_master);
+    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, PHP_AHOSTRUCT_MASTER_RES_NAME);
     if (ahoMaster==NULL || ahoMaster->init_ok != 1){
         RETURN_FALSE;
     } else {
@@ -581,17 +581,17 @@ PHP_FUNCTION(ahocorasick_isValid)
 PHP_FUNCTION(ahocorasick_match)
 {
     char *lowered, *normal;
-    zval *uservar, *ahostruct;
+    zval *uservar=NULL, *zval_aho_master=NULL;
     zend_bool findAll = 1;
-    ahoMasterStruct * ahoMaster;
+    ahocorasick_master_t * ahoMaster;
     AC_TEXT_t tmp_text;
     
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz|b", &uservar, &ahostruct, &findAll) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz|b", &uservar, &zval_aho_master, &findAll) == FAILURE) {
         RETURN_NULL();
     }
     
     // fetch resource passed as parameter
-    ZEND_FETCH_RESOURCE(ahoMaster, ahoMasterStruct*, &ahostruct, -1, PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahostruct_master);
+    ZEND_FETCH_RESOURCE(ahoMaster, ahocorasick_master_t*, &zval_aho_master, -1, PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
     if (ahoMaster==NULL){
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid resource.");
         RETURN_FALSE;
@@ -603,13 +603,13 @@ PHP_FUNCTION(ahocorasick_match)
     }
 
     // finalize trie if not finalized already
-    php_ac_finalize(ahoMaster);
+    php_ahocorasick_finalize(ahoMaster);
 
     normal = Z_STRVAL_P(uservar);
 #ifdef AHOCORASICK_USE_LOWER
     // at first, obtain also lower case variant
     // strtolower is disabled now, exact match is required
-    lowered = mb_strtolower(Z_STRVAL_P(uservar) TSRMLS_CC);
+    lowered = php_ahocorasick_mb_strtolower(Z_STRVAL_P(uservar) TSRMLS_CC);
     tmp_text.astring = lowered;
 #else
     //*** 6. Set input text
@@ -620,7 +620,7 @@ PHP_FUNCTION(ahocorasick_match)
     /* Sending parameter to call-back function */
     // initialize return array
     array_init(return_value);
-    struct aho_callback_payload my_param;
+    struct ahocorasick_callback_payload_t my_param;
     my_param.retVal = 0;
     my_param.resultArray = return_value;
     
@@ -639,22 +639,22 @@ PHP_FUNCTION(ahocorasick_match)
  */
 PHP_FUNCTION(ahocorasick_deinit)
 {
-    zval *ahostruct;
-    ahoMasterStruct * ahoMaster;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &ahostruct) == FAILURE) {
+    zval *zval_aho_master;
+    ahocorasick_master_t * ahoMaster;
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
         RETURN_NULL();
     }
     
     // fetch resource passed as parameter
-    ZEND_FETCH_RESOURCE(ahoMaster, ahoMasterStruct*, &ahostruct, -1, PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahostruct_master);
+    ZEND_FETCH_RESOURCE(ahoMaster, ahocorasick_master_t*, &zval_aho_master, -1, PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
     // already empty?
     if (ahoMaster==NULL){
         RETURN_FALSE;
     }
     
     // delete now
-    php_ac_finalize(ahoMaster);
-    zend_list_delete(Z_LVAL_P(ahostruct));
+    php_ahocorasick_finalize(ahoMaster);
+    zend_list_delete(Z_LVAL_P(zval_aho_master));
     RETURN_TRUE;
 }
 
@@ -676,16 +676,16 @@ PHP_FUNCTION(ahocorasick_init)
     arr_hash = Z_ARRVAL_P(arr);
 
     // create resource in holder structure, fill with data, return
-    ahoMasterStruct * ahomaster = emalloc(sizeof(ahoMasterStruct));
+    ahocorasick_master_t * ahomaster = emalloc(sizeof(ahocorasick_master_t));
     ahomaster->acap = ac_trie_create();
     ahomaster->ac_finalized = 0;
     ahomaster->init_ok = 0;
-    ahomaster->ahostructbuff = NULL;
-    ahomaster->ahobufflen = 0;
+    ahomaster->patterns = NULL;
+    ahomaster->pattern_count = 0;
 
-    int pattern_processing_status = php_ac_process_patterns(ahomaster, arr_hash TSRMLS_CC);
+    int pattern_processing_status = php_ahocorasick_process_patterns(ahomaster, arr_hash TSRMLS_CC);
     if (pattern_processing_status != 0){
-        php_ac_release_patterns(ahomaster);
+        php_ahocorasick_release_patterns(ahomaster);
         ac_trie_release(ahomaster->acap);
         efree(ahomaster);
         RETURN_FALSE;
@@ -694,9 +694,9 @@ PHP_FUNCTION(ahocorasick_init)
     // pass ACAP object - holding aho automaton
     ahomaster->init_ok = 1;
     // register this resource for ZEND engine
-    ZEND_REGISTER_RESOURCE(return_value, ahomaster, le_ahostruct_master);
+    ZEND_REGISTER_RESOURCE(return_value, ahomaster, le_ahocorasick_master);
         
-    // ahostruct build OK.
+    // ahocorasick_pattern_t build OK.
     // Keep in mind that we are not freeing strings allocated in memory, it is 
     // still used internally in aho structure, this free is postponed to releasing
     // aho structure.
@@ -709,18 +709,18 @@ PHP_FUNCTION(ahocorasick_init)
  */
 PHP_FUNCTION(ahocorasick_finalize)
 {
-    zval *ahostruct;
-    ahoMasterStruct * ahoMaster;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &ahostruct) == FAILURE) {
+    zval *zval_aho_master;
+    ahocorasick_master_t * ahoMaster;
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
         RETURN_NULL();
     }
 
     // fetch resource passed as parameter
-    ahoMaster = (ahoMasterStruct*) zend_fetch_resource(&ahostruct TSRMLS_CC, -1, NULL, NULL, 1, le_ahostruct_master);
+    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
     if (ahoMaster==NULL){
         RETURN_FALSE;
     } else {
-        if (php_ac_finalize(ahoMaster)) {
+        if (php_ahocorasick_finalize(ahoMaster)) {
             RETURN_TRUE;
         } else {
             RETURN_FALSE;
@@ -730,25 +730,24 @@ PHP_FUNCTION(ahocorasick_finalize)
 
 /**
  * Adds search patterns to the non-finalized search trie.
- * TODO: implement
  * @param
  * @return
  */
 PHP_FUNCTION(ahocorasick_add_patterns)
 {
-    zval *ahostruct;
+    zval *zval_aho_master;
     zval *arr;
-    ahoMasterStruct * ahoMaster;
+    ahocorasick_master_t * ahoMaster;
     HashTable *arr_hash;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "za", &ahostruct, &arr) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "za", &zval_aho_master, &arr) == FAILURE) {
         RETURN_NULL();
     }
 
     arr_hash = Z_ARRVAL_P(arr);
 
     // fetch resource passed as parameter
-    ahoMaster = (ahoMasterStruct*) zend_fetch_resource(&ahostruct TSRMLS_CC, -1, NULL, NULL, 1, le_ahostruct_master);
+    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
     if (ahoMaster == NULL || ahoMaster->init_ok != 1){
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot add a new pattern, not initialized");
         RETURN_FALSE;
@@ -759,7 +758,7 @@ PHP_FUNCTION(ahocorasick_add_patterns)
         RETURN_FALSE;
     }
 
-    int pattern_processing_status = php_ac_process_patterns(ahoMaster, arr_hash TSRMLS_CC);
+    int pattern_processing_status = php_ahocorasick_process_patterns(ahoMaster, arr_hash TSRMLS_CC);
     if (pattern_processing_status != 0){
         RETURN_FALSE;
     } else {

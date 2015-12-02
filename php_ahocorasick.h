@@ -47,7 +47,7 @@ ZEND_END_MODULE_GLOBALS(ahocorasick)
 /**
  * Sample param to pass to callback handler for AhoCorasick search algorithm
  */
-struct aho_callback_payload {
+struct ahocorasick_callback_payload_t {
         // found match will be added here
         int retVal;
         zval * resultArray;
@@ -56,7 +56,7 @@ struct aho_callback_payload {
 /**
  * AhoCorasick table initialization
  */
-typedef struct _ahostruct {
+typedef struct ahocorasick_pattern_t {
     char *key;
     long keyId;
     enum ac_pattid_type keyType;
@@ -69,14 +69,14 @@ typedef struct _ahostruct {
     int ignoreCase;
     zval * auxObj;
 
-    struct _ahostruct * next;
-    struct _ahostruct * prev;
-} ahostruct;
+    struct ahocorasick_pattern_t * next;
+    struct ahocorasick_pattern_t * prev;
+} ahocorasick_pattern_t;
 
 /**
  * Initialized Aho Corasick search structure - resource
  */
-typedef struct _ahoMasterStruct {
+typedef struct ahocorasick_master_t {
     // aho corasick main search tree
     AC_TRIE_t * acap;
     // if structure was finalized, is set to 1
@@ -84,10 +84,10 @@ typedef struct _ahoMasterStruct {
     // if initialization was ok, is set to 1.
     unsigned char init_ok;
     // root of the doubly linked list for search patterns
-    ahostruct * ahostructbuff;
+    ahocorasick_pattern_t * patterns;
     // size of the search pattern list
-    long ahobufflen;
-} ahoMasterStruct;
+    long pattern_count;
+} ahocorasick_master_t;
 
 #define PHP_AHOSTRUCT_MASTER_RES_NAME "AhoCorasick search"
 #define PHP_AHOSTRUCT_RES_NAME "Ahostruct element data"
