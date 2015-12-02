@@ -7,6 +7,10 @@ sudo: false
 # list any PHP version you want to test against
 php:
   # using major version aliases
+  # aliased to a recent 5.2.x version
+  - 5.2
+  # aliased to a recent 5.3.x version
+  - 5.3
   # aliased to a recent 5.4.x version
   - 5.4
   # aliased to a recent 5.5.x version
