@@ -89,7 +89,7 @@ static void php_ahocorasick_init_globals(zend_ahocorasick_globals *ahocorasick_g
 }
 
 /**
- * Finalizes searching trie if was not finalized.
+ * Finalizes searching trie if it was not finalized.
  */
 static inline int php_ac_finalize(ahoMasterStruct * ahoMaster){
     if (ahoMaster == NULL
@@ -105,6 +105,9 @@ static inline int php_ac_finalize(ahoMasterStruct * ahoMaster){
     return 1;
 }
 
+/**
+ * Resets all pattern fields. Does not perform any deallocation.
+ */
 static inline int php_ac_reset_pattern(ahostruct * tmpStruct){
     if (tmpStruct == NULL){
         return -1;
@@ -121,6 +124,9 @@ static inline int php_ac_reset_pattern(ahostruct * tmpStruct){
     return 0;
 }
 
+/**
+ * Deallocates all memory related to the given pattern.
+ */
 static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
     if (tmpStruct == NULL){
         return -1;
@@ -147,6 +153,9 @@ static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
     return 0;
 }
 
+/**
+ * Reads single pattern definition, construct ahostruct representation of pattern.
+ */
 static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub TSRMLS_DC) {
     php_ac_reset_pattern(tmpStruct);
 
@@ -244,19 +253,36 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
     return returnCode;
 }
 
-static inline int php_ac_add_pattern(ahoMasterStruct * master, ahostruct * tmpStruct){
+/**
+ * Adds the given list to the pattern list
+ */
+static inline int php_ac_add_patterns(ahoMasterStruct * master, ahostruct * tmpStruct, ahostruct * tmpStructLast, long sublistSize){
     if (master == NULL || tmpStruct == NULL){
         return -1;
     }
 
     tmpStruct->prev = NULL;
-    tmpStruct->next = master->ahostructbuff;
+    tmpStructLast->next = master->ahostructbuff;
+
+    if (master->ahostructbuff){
+        master->ahostructbuff->prev = tmpStructLast;
+    }
     master->ahostructbuff = tmpStruct;
-    master->ahobufflen += 1;
+    master->ahobufflen += sublistSize;
     return 0;
 }
 
-static int php_ac_release_patterns(ahoMasterStruct * master){
+/**
+ * Adds given pattern to the doubly linked list. Does not copy memory, embbeds given structure directly to the list.
+ */
+static inline int php_ac_add_pattern(ahoMasterStruct * master, ahostruct * tmpStruct){
+    return php_ac_add_patterns(master, tmpStruct, tmpStruct, 1);
+}
+
+/**
+ * Releases all associated memory in linked list of patterns
+ */
+static inline int php_ac_release_patterns(ahoMasterStruct * master){
     if (master == NULL){
         return -1;
     }
@@ -274,7 +300,137 @@ static int php_ac_release_patterns(ahoMasterStruct * master){
 
     return 0;
 }
-    
+
+/**
+ * Reads array of patterns, adds them to the search trie.
+ */
+static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * arr_hash TSRMLS_DC){
+    int pattern_processing_status = 0;
+    zval *arr;
+    zval **data;
+    HashPosition pointer;
+    int array_count;
+    int curIdx = 0;
+
+    ahostruct * p0 = NULL;
+    ahostruct * p1 = NULL;
+    ahostruct * prevPattern = NULL;
+    ahostruct * lastPattern = NULL;
+    array_count = zend_hash_num_elements(arr_hash);
+    // initialize buffer array
+    //ahostruct ** ahostructbuff = (ahostruct ** ) emalloc(sizeof(*ahostructbuff) * array_count);
+    //memset(ahostructbuff, 0, sizeof(*ahostructbuff) * array_count);
+
+    // iterate input initialized array
+    for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer);
+        zend_hash_get_current_data_ex(arr_hash, (void**) &data, &pointer) == SUCCESS;
+        zend_hash_move_forward_ex(arr_hash, &pointer), curIdx++) {
+
+        // check structure
+        if (Z_TYPE_PP(data) != IS_ARRAY) {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure! Cannot initialize.");
+            pattern_processing_status = -4;
+            break;
+        }
+
+        // now we know that element is another array - iterate over it again and gain needed info
+        ahostruct * tmpStruct = (ahostruct *) emalloc(sizeof(ahostruct));
+        if (curIdx == 0){
+            lastPattern = tmpStruct;
+        }
+
+        // Construct as a doubly linked list.
+        tmpStruct->prev = NULL;
+        tmpStruct->next = prevPattern;
+        if (prevPattern){
+            prevPattern->prev = tmpStruct;
+        }
+        prevPattern = tmpStruct;
+
+        // iterate over sub array
+        unsigned long allKeys = 0;
+        zval **data_sub;
+        HashTable *arr_hash_sub = Z_ARRVAL_P(*data);
+        int status_code = php_ac_process_pattern(tmpStruct, arr_hash_sub TSRMLS_CC);
+
+        if (status_code != 0){
+            pattern_processing_status = -1;
+            break;
+        }
+
+        // sanity check, if failed, return false
+        if (tmpStruct->value==NULL){
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified!");
+            pattern_processing_status = -2;
+            break;
+        }
+
+        // numeric key and string identifier are mutualy exclusive
+        if ((allKeys & 0x1) && (allKeys & 0x8)){
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both!");
+            pattern_processing_status = -3;
+            break;
+        }
+    }
+
+    // if processing failed, free memory.
+    if (pattern_processing_status != 0){
+        p0 = prevPattern;
+        while(p0){
+            p1 = p0->next;
+            php_ac_dealloc_pattern(p0);
+            efree(p0);
+            p0 = p1;
+        }
+
+        return pattern_processing_status;
+    }
+
+    //
+    // now is everything OK (input data parsed properly) -> initialize AHO automata
+    //
+
+    // Add all patterns at once to the internal data structures
+    php_ac_add_patterns(master, prevPattern, lastPattern, curIdx);
+
+    p0 = prevPattern;
+    while(p0){
+        AC_PATTERN_t tmp_patt;
+        p1 = p0->next;
+
+        // Construct search pattern for AhoCorasick library.
+        // search string
+        tmp_patt.ptext.astring = p0->value;
+        tmp_patt.ptext.length = p0->valueLen;
+
+        //The replacement pattern is not applicable in this program, so better
+        //to initialize it with 0/
+        tmp_patt.rtext.astring = NULL;
+        tmp_patt.rtext.length = 0;
+
+        // search value key
+        tmp_patt.id.type = p0->keyType;
+        if (p0->keyType == AC_PATTID_TYPE_NUMBER){
+            tmp_patt.id.u.number = p0->keyId;
+        } else if (p0->keyType == AC_PATTID_TYPE_STRING) {
+            tmp_patt.id.u.stringy = p0->key;
+        }
+
+        // Aux object.
+        if (p0->auxObj != NULL){
+            tmp_patt.aux = (void*) p0->auxObj;
+        } else {
+            tmp_patt.aux = NULL;
+        }
+
+        // add this pattern to trie. copy pattern to internal memory.
+        ac_trie_add(master->acap, &tmp_patt, 0);
+        p0 = p1;
+    }
+
+    return pattern_processing_status;
+}
+
 PHP_RINIT_FUNCTION(ahocorasick)
 {
     return SUCCESS;
@@ -516,6 +672,9 @@ PHP_FUNCTION(ahocorasick_init)
         RETURN_NULL();
     }
 
+    // Get matching patterns
+    arr_hash = Z_ARRVAL_P(arr);
+
     // create resource in holder structure, fill with data, return
     ahoMasterStruct * ahomaster = emalloc(sizeof(ahoMasterStruct));
     ahomaster->acap = ac_trie_create();
@@ -524,120 +683,13 @@ PHP_FUNCTION(ahocorasick_init)
     ahomaster->ahostructbuff = NULL;
     ahomaster->ahobufflen = 0;
 
-    int pattern_processing_status = 0;
-    arr_hash = Z_ARRVAL_P(arr);
-    array_count = zend_hash_num_elements(arr_hash);
-    // initialize buffer array
-    ahostruct ** ahostructbuff = (ahostruct ** ) emalloc(sizeof(*ahostructbuff) * array_count);
-    memset(ahostructbuff, 0, sizeof(*ahostructbuff) * array_count);
-
-    // iterate input initialized array
-    for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer); 
-            zend_hash_get_current_data_ex(arr_hash, (void**) &data, &pointer) == SUCCESS; 
-            zend_hash_move_forward_ex(arr_hash, &pointer), curIdx++) {
-
-        // check structure
-        if (Z_TYPE_PP(data) != IS_ARRAY) {
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure! Cannot initialize.");
-            pattern_processing_status = -4;
-            break;
-        }
-        
-        // now we know that element is another array - iterate over it again and gain needed info
-        ahostruct * tmpStruct = (ahostruct *) emalloc(sizeof(ahostruct));
-        ahostructbuff[curIdx] = tmpStruct;
-
-        // iterate over sub array
-        unsigned long allKeys = 0;
-        zval **data_sub;
-        HashTable *arr_hash_sub = Z_ARRVAL_P(*data);
-        int status_code = php_ac_process_pattern(tmpStruct, arr_hash_sub TSRMLS_CC);
-
-        if (status_code != 0){
-            pattern_processing_status = -1;
-            break;
-        }
-
-        // sanity check, if failed, return false
-        if (tmpStruct->value==NULL){
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified!");
-            pattern_processing_status = -2;
-            break;
-        }
-
-        // numeric key and string identifier are mutualy exclusive
-        if ((allKeys & 0x1) && (allKeys & 0x8)){
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both!");
-            pattern_processing_status = -3;
-            break;
-        }
-    }
-
-    // if processing failed, free memory.
+    int pattern_processing_status = php_ac_process_patterns(ahomaster, arr_hash TSRMLS_CC);
     if (pattern_processing_status != 0){
-        unsigned int i;
-        for(i=0; i<curIdx; i++){
-            ahostruct * tmpStruct = ahostructbuff[i];
-            if (tmpStruct == NULL){
-                continue;
-            }
-
-            php_ac_dealloc_pattern(tmpStruct);
-            efree(tmpStruct);
-        }
-
-        efree(ahostructbuff);
-
         php_ac_release_patterns(ahomaster);
         ac_trie_release(ahomaster->acap);
         efree(ahomaster);
         RETURN_FALSE;
     }
-
-    //
-    // now is everything OK (input data parsed properly) -> initialize AHO automata
-    //
-    unsigned int i;
-    for(i=0; i<array_count; i++){
-        AC_PATTERN_t tmp_patt;
-        ahostruct * tmpStruct = ahostructbuff[i];
-        if (tmpStruct == NULL){
-            continue;
-        }
-
-        // Add to internal structures
-        php_ac_add_pattern(ahomaster, tmpStruct);
-
-        // Construct search pattern for AhoCorasick library.
-        // search string
-        tmp_patt.ptext.astring = ahostructbuff[i]->value;
-        tmp_patt.ptext.length = ahostructbuff[i]->valueLen;
-
-        //The replacement pattern is not applicable in this program, so better
-        //to initialize it with 0/
-        tmp_patt.rtext.astring = NULL;
-        tmp_patt.rtext.length = 0;
-
-        // search value key
-        tmp_patt.id.type = ahostructbuff[i]->keyType;
-        if (ahostructbuff[i]->keyType == AC_PATTID_TYPE_NUMBER){
-            tmp_patt.id.u.number = ahostructbuff[i]->keyId;
-        } else if (ahostructbuff[i]->keyType == AC_PATTID_TYPE_STRING) {
-            tmp_patt.id.u.stringy = ahostructbuff[i]->key;
-        }
-
-        // Aux object.
-        if (ahostructbuff[i]->auxObj != NULL){
-            tmp_patt.aux = (void*) ahostructbuff[i]->auxObj;
-        } else {
-            tmp_patt.aux = NULL;
-        }
-
-        // add this pattern to trie. copy pattern to internal memory.
-        ac_trie_add(ahomaster->acap, &tmp_patt, 0);
-    }
-
-    efree(ahostructbuff);
 
     // pass ACAP object - holding aho automaton
     ahomaster->init_ok = 1;
