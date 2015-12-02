@@ -68,6 +68,9 @@ typedef struct _ahostruct {
 
     int ignoreCase;
     zval * auxObj;
+
+    struct _ahostruct * next;
+    struct _ahostruct * prev;
 } ahostruct;
 
 /**
@@ -80,9 +83,9 @@ typedef struct _ahoMasterStruct {
     unsigned char ac_finalized;
     // if initialization was ok, is set to 1.
     unsigned char init_ok;
-    // string buffer for aho corasick (pointers to memory)
-    ahostruct ** ahostructbuff;
-    // length of buffer array above
+    // root of the doubly linked list for search patterns
+    ahostruct * ahostructbuff;
+    // size of the search pattern list
     long ahobufflen;
 } ahoMasterStruct;
 

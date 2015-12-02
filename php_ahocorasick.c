@@ -147,8 +147,7 @@ static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
     return 0;
 }
 
-static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub TSRMLS_DC)
-{
+static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub TSRMLS_DC) {
     php_ac_reset_pattern(tmpStruct);
 
     // iterate over sub array
@@ -245,6 +244,36 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
     return returnCode;
 }
 
+static inline int php_ac_add_pattern(ahoMasterStruct * master, ahostruct * tmpStruct){
+    if (master == NULL || tmpStruct == NULL){
+        return -1;
+    }
+
+    tmpStruct->prev = NULL;
+    tmpStruct->next = master->ahostructbuff;
+    master->ahostructbuff = tmpStruct;
+    master->ahobufflen += 1;
+    return 0;
+}
+
+static int php_ac_release_patterns(ahoMasterStruct * master){
+    if (master == NULL){
+        return -1;
+    }
+
+    ahostruct * p0 = master->ahostructbuff;
+    while(p0){
+        ahostruct * next = p0->next;
+        php_ac_dealloc_pattern(p0);
+        efree(p0);
+        p0 = next;
+    }
+
+    master->ahostructbuff = NULL;
+    master->ahobufflen = 0;
+
+    return 0;
+}
     
 PHP_RINIT_FUNCTION(ahocorasick)
 {
@@ -268,19 +297,7 @@ static void php_ahostruct_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
             ac_trie_release(aho->acap);
         }
 
-        // now release strings kept inside aho structure
-        for (i = 0; i < aho->ahobufflen; i++) {
-            if (aho->ahostructbuff[i] == NULL) {
-                continue;
-            }
-
-            php_ac_dealloc_pattern(aho->ahostructbuff[i]);
-
-            // now free element structure
-            efree(aho->ahostructbuff[i]);
-        }
-        // release whole array
-        efree(aho->ahostructbuff);
+        php_ac_release_patterns(aho);
     }
 
     // release holder structure
@@ -499,6 +516,14 @@ PHP_FUNCTION(ahocorasick_init)
         RETURN_NULL();
     }
 
+    // create resource in holder structure, fill with data, return
+    ahoMasterStruct * ahomaster = emalloc(sizeof(ahoMasterStruct));
+    ahomaster->acap = ac_trie_create();
+    ahomaster->ac_finalized = 0;
+    ahomaster->init_ok = 0;
+    ahomaster->ahostructbuff = NULL;
+    ahomaster->ahobufflen = 0;
+
     int pattern_processing_status = 0;
     arr_hash = Z_ARRVAL_P(arr);
     array_count = zend_hash_num_elements(arr_hash);
@@ -562,24 +587,28 @@ PHP_FUNCTION(ahocorasick_init)
         }
 
         efree(ahostructbuff);
+
+        php_ac_release_patterns(ahomaster);
+        ac_trie_release(ahomaster->acap);
+        efree(ahomaster);
         RETURN_FALSE;
     }
-    
+
     //
     // now is everything OK (input data parsed properly) -> initialize AHO automata
     //
     unsigned int i;
-
-    //*** 2. Define AC variables: AC_AUTOMATA_t *, AC_PATTERN_t, and AC_TEXT_t
-    AC_TRIE_t * acap;
-    AC_TEXT_t tmp_text;
-
-    //*** 3. Get a new automata
-    acap = ac_trie_create();
-
-    //*** 4. add patterns to automata
-    for (i=0; i<array_count; i++){
+    for(i=0; i<array_count; i++){
         AC_PATTERN_t tmp_patt;
+        ahostruct * tmpStruct = ahostructbuff[i];
+        if (tmpStruct == NULL){
+            continue;
+        }
+
+        // Add to internal structures
+        php_ac_add_pattern(ahomaster, tmpStruct);
+
+        // Construct search pattern for AhoCorasick library.
         // search string
         tmp_patt.ptext.astring = ahostructbuff[i]->value;
         tmp_patt.ptext.length = ahostructbuff[i]->valueLen;
@@ -605,18 +634,13 @@ PHP_FUNCTION(ahocorasick_init)
         }
 
         // add this pattern to trie. copy pattern to internal memory.
-        ac_trie_add(acap, &tmp_patt, 1);
+        ac_trie_add(ahomaster->acap, &tmp_patt, 0);
     }
-    
-    // create resource in holder structure, fill with data, return
-    ahoMasterStruct * ahomaster = emalloc(sizeof(ahoMasterStruct));
+
+    efree(ahostructbuff);
+
     // pass ACAP object - holding aho automaton
-    ahomaster->acap = acap;
-    ahomaster->ac_finalized = 0;
     ahomaster->init_ok = 1;
-    // now store pointers to allocated strings in memory - for aho struct in memory
-    ahomaster->ahostructbuff = ahostructbuff;
-    ahomaster->ahobufflen = array_count;
     // register this resource for ZEND engine
     ZEND_REGISTER_RESOURCE(return_value, ahomaster, le_ahostruct_master);
         
