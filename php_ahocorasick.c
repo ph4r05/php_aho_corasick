@@ -91,7 +91,7 @@ static void php_ahocorasick_init_globals(zend_ahocorasick_globals *ahocorasick_g
 /**
  * Finalizes searching trie if was not finalized.
  */
-static int php_ac_finalize(ahoMasterStruct * ahoMaster){
+static inline int php_ac_finalize(ahoMasterStruct * ahoMaster){
     if (ahoMaster == NULL
         || ahoMaster->init_ok != 1
         || ahoMaster->ac_finalized == 1)
@@ -104,6 +104,147 @@ static int php_ac_finalize(ahoMasterStruct * ahoMaster){
     ac_trie_finalize (ahoMaster->acap);
     return 1;
 }
+
+static inline int php_ac_reset_pattern(ahostruct * tmpStruct){
+    if (tmpStruct == NULL){
+        return -1;
+    }
+
+    tmpStruct->ignoreCase=0;
+    tmpStruct->key=NULL;
+    tmpStruct->zKey=NULL;
+    tmpStruct->keyId=0;
+    tmpStruct->keyType=AC_PATTID_TYPE_DEFAULT;
+    tmpStruct->value=NULL;
+    tmpStruct->zVal=NULL;
+    tmpStruct->auxObj=NULL;
+    return 0;
+}
+
+static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
+    if (tmpStruct == NULL){
+        return -1;
+    }
+
+    if (tmpStruct->key != NULL && tmpStruct->zKey != NULL) {
+        zval_ptr_dtor(&(tmpStruct->zKey));
+        tmpStruct->key = NULL;
+        tmpStruct->zKey = NULL;
+    }
+
+    if (tmpStruct->value != NULL && tmpStruct->zVal != NULL) {
+        zval_ptr_dtor(&(tmpStruct->zVal));
+        tmpStruct->value = NULL;
+        tmpStruct->zVal = NULL;
+    }
+
+    if (tmpStruct->auxObj != NULL){
+        zval_ptr_dtor(&(tmpStruct->auxObj));
+        tmpStruct->auxObj = NULL;
+    }
+    php_ac_reset_pattern(tmpStruct);
+
+    return 0;
+}
+
+static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub)
+{
+    php_ac_reset_pattern(tmpStruct);
+
+    // iterate over sub array
+    int returnCode = 0;
+    unsigned long allKeys = 0;
+    zval **data_sub;
+    HashPosition pointer_sub;
+    for (zend_hash_internal_pointer_reset_ex(arr_hash_sub, &pointer_sub);
+         zend_hash_get_current_data_ex(arr_hash_sub, (void**) &data_sub, &pointer_sub) == SUCCESS;
+         zend_hash_move_forward_ex(arr_hash_sub, &pointer_sub))
+    {
+        zval temp;
+        char *key;
+        unsigned int key_len;
+        unsigned long index;
+        unsigned long keyFound = 0;
+
+        // obtain array key
+        if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer_sub) != HASH_KEY_IS_STRING) {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure (bad sub-array key)! Cannot initialize.");
+            returnCode = -1;
+            break;
+        }
+
+        // determine known keys
+        temp = **data_sub;
+        if (strcasecmp("key", key)==0){
+            keyFound|=1;
+        } else if (strcasecmp("value", key)==0){
+            keyFound|=2;
+        } else if (strcasecmp("ignoreCase", key)==0){
+            keyFound|=4;
+        } else if (strcasecmp("id", key)==0){
+            keyFound|=8;
+        } else if (strcasecmp("aux", key)==0){
+            keyFound|=0x10;
+        } else {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING,
+                    "Invalid structure (unrecognized sub-array key: [%s])! "
+                            "Only allowed are: {key, id, value, aux, ignoreCase}. Cannot initialize.", key);
+            returnCode = -2;
+            break;
+        }
+        allKeys |= keyFound;
+
+        // Numeric identifier
+        if ((keyFound & 0x8) > 0){
+            long keyId = Z_LVAL(temp);
+            tmpStruct->keyId = keyId;
+            tmpStruct->keyType = AC_PATTID_TYPE_NUMBER;
+        }
+
+        // Aux object
+        if ((keyFound & 0x10) > 0){
+            // No copying using same reference.
+            tmpStruct->auxObj = *data_sub;
+            Z_ADDREF_P(*data_sub);
+        }
+
+        // ignoreCase - deprecated.
+        if ((keyFound & 0x4) > 0){
+            // convert to boolean
+            int tmpBool = Z_BVAL(temp);
+            tmpStruct->ignoreCase = tmpBool;
+        }
+
+        // key/value present -> process
+        if ((keyFound & 0x3) > 0){
+            char * stmp = NULL;
+            // Avoid string copy, use reference counting.
+            stmp = Z_STRVAL(temp);
+            Z_ADDREF_P(*data_sub);
+            if (keyFound == 0x1){
+                // key
+                tmpStruct->zKey = *data_sub;
+                tmpStruct->key = stmp;
+                tmpStruct->keyType = AC_PATTID_TYPE_STRING;
+            } else if (keyFound == 0x2){
+                // value
+                tmpStruct->zVal = *data_sub;
+                tmpStruct->value = stmp;
+                tmpStruct->valueLen = Z_STRLEN(temp);
+            }
+        }
+    }
+
+    // If everything went well, we can return successfully.
+    if (returnCode == 0){
+        return 0;
+    }
+
+    // Otherwise deallocate this entry.
+    php_ac_dealloc_pattern(tmpStruct);
+    return returnCode;
+}
+
     
 PHP_RINIT_FUNCTION(ahocorasick)
 {
@@ -117,35 +258,34 @@ static void php_ahostruct_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
     long i=0;
     ahoMasterStruct *aho = (ahoMasterStruct*)rsrc->ptr;
-    if (aho) {
+    if (aho == NULL){
+        return;
+    }
+
+    if (aho->ahostructbuff != NULL) {
         // release automata here
-        ac_trie_release(aho->acap);
+        if (aho->acap != NULL) {
+            ac_trie_release(aho->acap);
+        }
+
         // now release strings kept inside aho structure
-        for (i=0; i<aho->ahobufflen; i++){
-            // at first release strings
-            if (aho->ahostructbuff[i]->key != NULL) {
-                zval_ptr_dtor(&(aho->ahostructbuff[i]->zKey));
-                aho->ahostructbuff[i]->key = NULL;
+        for (i = 0; i < aho->ahobufflen; i++) {
+            if (aho->ahostructbuff[i] == NULL) {
+                continue;
             }
 
-            if (aho->ahostructbuff[i]->value != NULL) {
-                zval_ptr_dtor(&(aho->ahostructbuff[i]->zVal));
-                aho->ahostructbuff[i]->value = NULL;
-            }
-
-            if (aho->ahostructbuff[i]->auxObj != NULL){
-                zval_ptr_dtor(&(aho->ahostructbuff[i]->auxObj));
-                aho->ahostructbuff[i]->auxObj = NULL;
-            }
+            php_ac_dealloc_pattern(aho->ahostructbuff[i]);
 
             // now free element structure
             efree(aho->ahostructbuff[i]);
         }
         // release whole array
         efree(aho->ahostructbuff);
-        // release holder structure
-        efree(aho);
     }
+
+    // release holder structure
+    efree(aho);
+    php_error_docref(NULL TSRMLS_CC, E_WARNING, "DEALLOC OK");
 }
 
 PHP_MINIT_FUNCTION(ahocorasick)
@@ -359,11 +499,14 @@ PHP_FUNCTION(ahocorasick_init)
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &arr) == FAILURE) {
         RETURN_NULL();
     }
-    
+
+    int pattern_processing_status = 0;
     arr_hash = Z_ARRVAL_P(arr);
     array_count = zend_hash_num_elements(arr_hash);
     // initialize buffer array
     ahostruct ** ahostructbuff = (ahostruct ** ) emalloc(sizeof(*ahostructbuff) * array_count);
+    memset(ahostructbuff, 0, sizeof(*ahostructbuff) * array_count);
+
     // iterate input initialized array
     for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer); 
             zend_hash_get_current_data_ex(arr_hash, (void**) &data, &pointer) == SUCCESS; 
@@ -372,113 +515,55 @@ PHP_FUNCTION(ahocorasick_init)
         // check structure
         if (Z_TYPE_PP(data) != IS_ARRAY) {
             php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure! Cannot initialize.");
-            RETURN_FALSE;
+            pattern_processing_status = -4;
+            break;
         }
         
         // now we know that element is another array - iterate over it again and gain needed info
         ahostruct * tmpStruct = (ahostruct *) emalloc(sizeof(ahostruct));
         ahostructbuff[curIdx] = tmpStruct;
-        tmpStruct->ignoreCase=0;
-        tmpStruct->key=NULL;
-        tmpStruct->keyId=0;
-        tmpStruct->keyType=AC_PATTID_TYPE_DEFAULT;
-        tmpStruct->value=NULL;
-        tmpStruct->auxObj=NULL;
 
         // iterate over sub array
         unsigned long allKeys = 0;
         zval **data_sub;
         HashTable *arr_hash_sub = Z_ARRVAL_P(*data);
-        HashPosition pointer_sub;
-        for (zend_hash_internal_pointer_reset_ex(arr_hash_sub, &pointer_sub); 
-                zend_hash_get_current_data_ex(arr_hash_sub, (void**) &data_sub, &pointer_sub) == SUCCESS; 
-                zend_hash_move_forward_ex(arr_hash_sub, &pointer_sub)) {
-            zval temp;
-            char *key;
-            unsigned int key_len;
-            unsigned long index;
-            unsigned long keyFound = 0;
+        int status_code = php_ac_process_pattern(tmpStruct, arr_hash_sub);
 
-            // obtain array key
-            if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer_sub) == HASH_KEY_IS_STRING) {
-                // key is correct - string
-            } else {
-                php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure (bad sub-array key)! Cannot initialize.");
-                RETURN_FALSE;
-            }
-            
-            // determine known keys
-            temp = **data_sub;
-            if (strcasecmp("key", key)==0){
-                keyFound|=1;
-            } else if (strcasecmp("value", key)==0){
-                keyFound|=2;
-            } else if (strcasecmp("ignoreCase", key)==0){
-                keyFound|=4;
-            } else if (strcasecmp("id", key)==0){
-                keyFound|=8;
-            } else if (strcasecmp("aux", key)==0){
-                keyFound|=0x10;
-            } else {
-                php_error_docref(NULL TSRMLS_CC, E_WARNING, 
-                        "Invalid structure (unrecognized sub-array key: [%s])! "
-                        "Only allowed are: {key, id, value, aux, ignoreCase}. Cannot initialize.", key);
-                RETURN_FALSE;
-            }
-            allKeys |= keyFound;
-
-            // Numeric identifier
-            if ((keyFound & 0x8) > 0){
-                long keyId = Z_LVAL(temp);
-                tmpStruct->keyId = keyId;
-                tmpStruct->keyType = AC_PATTID_TYPE_NUMBER;
-            }
-
-            // Aux object
-            if ((keyFound & 0x10) > 0){
-                // No copying using same reference.
-                tmpStruct->auxObj = *data_sub;
-                Z_ADDREF_P(*data_sub);
-            }
-            
-            // ignoreCase - deprecated.
-            if ((keyFound & 0x4) > 0){
-                // convert to boolean
-                int tmpBool = Z_BVAL(temp);
-                tmpStruct->ignoreCase = tmpBool;
-            }
-            
-            // key/value present -> process
-            if ((keyFound & 0x3) > 0){
-                char * stmp = NULL;
-                // Avoid string copy, use reference counting.
-                stmp = Z_STRVAL(temp);
-                Z_ADDREF_P(*data_sub);
-                if (keyFound == 0x1){
-                    // key
-                    tmpStruct->zKey = *data_sub;
-                    tmpStruct->key = stmp;
-                    tmpStruct->keyType = AC_PATTID_TYPE_STRING;
-                } else if (keyFound == 0x2){
-                    // value
-                    tmpStruct->zVal = *data_sub;
-                    tmpStruct->value = stmp;
-                    tmpStruct->valueLen = Z_STRLEN(temp);
-                }
-            }
+        if (status_code != 0){
+            pattern_processing_status = -1;
+            break;
         }
-        
+
         // sanity check, if failed, return false
         if (tmpStruct->value==NULL){
             php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified!");
-                RETURN_FALSE;
+            pattern_processing_status = -2;
+            break;
         }
 
         // numeric key and string identifier are mutualy exclusive
         if ((allKeys & 0x1) && (allKeys & 0x8)){
             php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both!");
-            RETURN_FALSE;
+            pattern_processing_status = -3;
+            break;
         }
+    }
+
+    // if processing failed, free memory.
+    if (pattern_processing_status != 0){
+        unsigned int i;
+        for(i=0; i<curIdx; i++){
+            ahostruct * tmpStruct = ahostructbuff[i];
+            if (tmpStruct == NULL){
+                continue;
+            }
+
+            php_ac_dealloc_pattern(tmpStruct);
+            efree(tmpStruct);
+        }
+
+        efree(ahostructbuff);
+        RETURN_FALSE;
     }
     
     //

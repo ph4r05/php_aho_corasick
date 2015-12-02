@@ -86,7 +86,7 @@ typedef struct _ahoMasterStruct {
     long ahobufflen;
 } ahoMasterStruct;
 
-#define PHP_AHOSTRUCT_MASTER_RES_NAME "Ahostruct master data"
+#define PHP_AHOSTRUCT_MASTER_RES_NAME "AhoCorasick search"
 #define PHP_AHOSTRUCT_RES_NAME "Ahostruct element data"
 
 PHP_MINIT_FUNCTION(ahocorasick);
