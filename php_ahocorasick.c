@@ -524,7 +524,8 @@ int match_handler(AC_MATCH_t * m, void * param)
         }
 
         if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
-            add_assoc_string(mysubarray, "key", (char*)m->patterns[j].id.u.stringy, 1);
+            add_assoc_zval(mysubarray, "key", curPattern->zKey);
+            Z_ADDREF_P(curPattern->zKey);
 
         } else if (m->patterns[j].id.type == AC_PATTID_TYPE_NUMBER){
             add_assoc_long(mysubarray, "keyIdx", m->patterns[j].id.u.number);
@@ -536,7 +537,8 @@ int match_handler(AC_MATCH_t * m, void * param)
             Z_ADDREF_P(curPattern->auxObj);
         }
 
-        add_assoc_string(mysubarray, "value", (char*)m->patterns[j].ptext.astring, 1);
+        add_assoc_zval(mysubarray, "value", curPattern->zVal);
+        Z_ADDREF_P(curPattern->zVal);
 
         // add to aggregate array
         add_next_index_zval(myp->resultArray, mysubarray);
@@ -660,7 +662,6 @@ PHP_FUNCTION(ahocorasick_deinit)
  * Initializes AhoCorasick search structure with passed data
  * @param 
  * @return
- * TODO: add option to add multiple patterns later, after init. finalize individually or on first matching call.
  */
 PHP_FUNCTION(ahocorasick_init)
 {
