@@ -50,6 +50,7 @@ static zend_function_entry ahocorasick_functions[] = {
     PHP_FE(ahocorasick_deinit, NULL)
     PHP_FE(ahocorasick_isValid, NULL)
     PHP_FE(ahocorasick_finalize, NULL)
+    PHP_FE(ahocorasick_add_patterns, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -132,6 +133,11 @@ static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
         return -1;
     }
 
+    if (tmpStruct->auxObj != NULL){
+        zval_ptr_dtor(&(tmpStruct->auxObj));
+        tmpStruct->auxObj = NULL;
+    }
+
     if (tmpStruct->key != NULL && tmpStruct->zKey != NULL) {
         zval_ptr_dtor(&(tmpStruct->zKey));
         tmpStruct->key = NULL;
@@ -144,12 +150,7 @@ static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
         tmpStruct->zVal = NULL;
     }
 
-    if (tmpStruct->auxObj != NULL){
-        zval_ptr_dtor(&(tmpStruct->auxObj));
-        tmpStruct->auxObj = NULL;
-    }
     php_ac_reset_pattern(tmpStruct);
-
     return 0;
 }
 
@@ -168,7 +169,6 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
          zend_hash_get_current_data_ex(arr_hash_sub, (void**) &data_sub, &pointer_sub) == SUCCESS;
          zend_hash_move_forward_ex(arr_hash_sub, &pointer_sub))
     {
-        zval temp;
         char *key;
         unsigned int key_len;
         unsigned long index;
@@ -182,7 +182,6 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
         }
 
         // determine known keys
-        temp = **data_sub;
         if (strcasecmp("key", key)==0){
             keyFound|=1;
         } else if (strcasecmp("value", key)==0){
@@ -204,7 +203,7 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
 
         // Numeric identifier
         if ((keyFound & 0x8) > 0){
-            long keyId = Z_LVAL(temp);
+            long keyId = Z_LVAL(**data_sub);
             tmpStruct->keyId = keyId;
             tmpStruct->keyType = AC_PATTID_TYPE_NUMBER;
         }
@@ -219,7 +218,7 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
         // ignoreCase - deprecated.
         if ((keyFound & 0x4) > 0){
             // convert to boolean
-            int tmpBool = Z_BVAL(temp);
+            int tmpBool = Z_BVAL(**data_sub);
             tmpStruct->ignoreCase = tmpBool;
         }
 
@@ -227,7 +226,7 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
         if ((keyFound & 0x3) > 0){
             char * stmp = NULL;
             // Avoid string copy, use reference counting.
-            stmp = Z_STRVAL(temp);
+            stmp = Z_STRVAL(**data_sub);
             Z_ADDREF_P(*data_sub);
             if (keyFound == 0x1){
                 // key
@@ -238,7 +237,7 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
                 // value
                 tmpStruct->zVal = *data_sub;
                 tmpStruct->value = stmp;
-                tmpStruct->valueLen = Z_STRLEN(temp);
+                tmpStruct->valueLen = Z_STRLEN(**data_sub);
             }
         }
     }
@@ -328,7 +327,7 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
 
         // check structure
         if (Z_TYPE_PP(data) != IS_ARRAY) {
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure! Cannot initialize.");
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid pattern structure! Cannot initialize.");
             pattern_processing_status = -4;
             break;
         }
@@ -360,12 +359,12 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
 
         // sanity check, if failed, return false
         if (tmpStruct->value==NULL){
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified!");
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified for pattern!");
             pattern_processing_status = -2;
             break;
         }
 
-        // numeric key and string identifier are mutualy exclusive
+        // numeric key and string identifier are mutually exclusive
         if ((allKeys & 0x1) && (allKeys & 0x8)){
             php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both!");
             pattern_processing_status = -3;
@@ -384,6 +383,11 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
         }
 
         return pattern_processing_status;
+    }
+
+    // Nothing to process.
+    if (prevPattern == NULL){
+        return 0;
     }
 
     //
@@ -416,15 +420,11 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
             tmp_patt.id.u.stringy = p0->key;
         }
 
-        // Aux object.
-        if (p0->auxObj != NULL){
-            tmp_patt.aux = (void*) p0->auxObj;
-        } else {
-            tmp_patt.aux = NULL;
-        }
+        // Aux object holds the whole pattern in our representation.
+        tmp_patt.aux = (void*)p0;
 
         // add this pattern to trie. copy pattern to internal memory.
-        ac_trie_add(master->acap, &tmp_patt, 0);
+        ac_trie_add(master->acap, &tmp_patt, 1);
         p0 = p1;
     }
 
@@ -523,14 +523,22 @@ int match_handler(AC_MATCH_t * m, void * param)
         array_init(mysubarray);
         add_assoc_long(mysubarray, "pos", m->position);
 
-        if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
-            add_assoc_string(mysubarray, "key", (char*)m->patterns[j].id.u.stringy, 1);
-        } else if (m->patterns[j].id.type == AC_PATTID_TYPE_NUMBER){
-            add_assoc_long(mysubarray, "keyIdx", m->patterns[j].id.u.number);
+        ahostruct * curPattern = (ahostruct *) m->patterns[j].aux;
+        if (curPattern == NULL){
+            continue;
         }
 
-        if (m->patterns[j].aux != NULL){
-            add_assoc_zval(mysubarray, "aux", (zval*)m->patterns[j].aux);
+        if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
+            add_assoc_string(mysubarray, "key", (char*)m->patterns[j].id.u.stringy, 1);
+
+        } else if (m->patterns[j].id.type == AC_PATTID_TYPE_NUMBER){
+            add_assoc_long(mysubarray, "keyIdx", m->patterns[j].id.u.number);
+
+        }
+
+        if (curPattern->auxObj != NULL){
+            add_assoc_zval(mysubarray, "aux", curPattern->auxObj);
+            Z_ADDREF_P(curPattern->auxObj);
         }
 
         add_assoc_string(mysubarray, "value", (char*)m->patterns[j].ptext.astring, 1);
@@ -725,5 +733,44 @@ PHP_FUNCTION(ahocorasick_finalize)
         } else {
             RETURN_FALSE;
         }
+    }
+}
+
+/**
+ * Adds search patterns to the non-finalized search trie.
+ * TODO: implement
+ * @param
+ * @return
+ */
+PHP_FUNCTION(ahocorasick_add_patterns)
+{
+    zval *ahostruct;
+    zval *arr;
+    ahoMasterStruct * ahoMaster;
+    HashTable *arr_hash;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "za", &ahostruct, &arr) == FAILURE) {
+        RETURN_NULL();
+    }
+
+    arr_hash = Z_ARRVAL_P(arr);
+
+    // fetch resource passed as parameter
+    ahoMaster = (ahoMasterStruct*) zend_fetch_resource(&ahostruct TSRMLS_CC, -1, NULL, NULL, 1, le_ahostruct_master);
+    if (ahoMaster == NULL || ahoMaster->init_ok != 1){
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot add a new pattern, not initialized");
+        RETURN_FALSE;
+    }
+
+    if (ahoMaster->ac_finalized){
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot add a new pattern to finalized search structure");
+        RETURN_FALSE;
+    }
+
+    int pattern_processing_status = php_ac_process_patterns(ahoMaster, arr_hash TSRMLS_CC);
+    if (pattern_processing_status != 0){
+        RETURN_FALSE;
+    } else {
+        RETURN_TRUE;
     }
 }
