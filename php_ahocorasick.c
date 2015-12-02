@@ -147,7 +147,7 @@ static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
     return 0;
 }
 
-static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub)
+static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub TSRMLS_CC)
 {
     php_ac_reset_pattern(tmpStruct);
 
@@ -285,7 +285,6 @@ static void php_ahostruct_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 
     // release holder structure
     efree(aho);
-    php_error_docref(NULL TSRMLS_CC, E_WARNING, "DEALLOC OK");
 }
 
 PHP_MINIT_FUNCTION(ahocorasick)
@@ -312,7 +311,7 @@ PHP_MSHUTDOWN_FUNCTION(ahocorasick)
  * 
  * Calls PHP function mb_strtolower from user space
  */
-char * mb_strtolower(char * input){
+char * mb_strtolower(char * input TSRMLS_CC){
     zval ret, function_name, *params[1];
     
     // construct function to call
@@ -432,7 +431,7 @@ PHP_FUNCTION(ahocorasick_match)
 #ifdef AHOCORASICK_USE_LOWER
     // at first, obtain also lower case variant
     // strtolower is disabled now, exact match is required
-    lowered = mb_strtolower(Z_STRVAL_P(uservar));
+    lowered = mb_strtolower(Z_STRVAL_P(uservar) TSRMLS_CC);
     tmp_text.astring = lowered;
 #else
     //*** 6. Set input text
@@ -495,7 +494,8 @@ PHP_FUNCTION(ahocorasick_init)
     HashPosition pointer;
     int array_count;
     int curIdx = 0;
-    
+
+    TSRMLS_FETCH();
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &arr) == FAILURE) {
         RETURN_NULL();
     }
@@ -527,7 +527,7 @@ PHP_FUNCTION(ahocorasick_init)
         unsigned long allKeys = 0;
         zval **data_sub;
         HashTable *arr_hash_sub = Z_ARRVAL_P(*data);
-        int status_code = php_ac_process_pattern(tmpStruct, arr_hash_sub);
+        int status_code = php_ac_process_pattern(tmpStruct, arr_hash_sub TSRMLS_CC);
 
         if (status_code != 0){
             pattern_processing_status = -1;
