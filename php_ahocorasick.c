@@ -254,6 +254,11 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
         returnCode = -3;
     }
 
+    // Deprecate ignoreCase option
+    if (allKeys & 0x4){
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "ignoreCase attribute is deprecated and is ignored");
+    }
+
     // If everything went well, we can return successfully.
     if (returnCode == 0){
         return 0;
@@ -328,9 +333,6 @@ static inline int php_ahocorasick_process_patterns(ahocorasick_master_t * master
     ahocorasick_pattern_t * prevPattern = NULL;
     ahocorasick_pattern_t * lastPattern = NULL;
     array_count = zend_hash_num_elements(arr_hash);
-    // initialize buffer array
-    //ahocorasick_pattern_t ** ahocorasick_pattern_tbuff = (ahocorasick_pattern_t ** ) emalloc(sizeof(*ahocorasick_pattern_tbuff) * array_count);
-    //memset(ahocorasick_pattern_tbuff, 0, sizeof(*ahocorasick_pattern_tbuff) * array_count);
 
     // iterate input initialized array
     for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer);
@@ -478,7 +480,7 @@ static char * php_ahocorasick_mb_strtolower(char * input TSRMLS_DC){
 /**
  * AhoCorasick callback handler - MATCH_CALBACK_t type
  */
-static int match_handler(AC_MATCH_t * m, void * param)
+static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
 {
     // variable to hold sub array - one found result
     zval * mysubarray;
@@ -628,7 +630,7 @@ PHP_FUNCTION(ahocorasick_match)
     my_param.retVal = findAll ? 0:1;
     
     //*** 7. Do search
-    ac_trie_search(ahoMaster->acap, &tmp_text, 0, match_handler, (void *)(&my_param));
+    ac_trie_search(ahoMaster->acap, &tmp_text, 0, php_ahocorasick_match_handler, (void *)(&my_param));
 }
 
 /**
