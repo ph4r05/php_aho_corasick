@@ -147,7 +147,7 @@ static inline int php_ac_dealloc_pattern(ahostruct * tmpStruct){
     return 0;
 }
 
-static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub TSRMLS_CC)
+static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_hash_sub TSRMLS_DC)
 {
     php_ac_reset_pattern(tmpStruct);
 
@@ -494,7 +494,7 @@ PHP_FUNCTION(ahocorasick_init)
     HashPosition pointer;
     int array_count;
     int curIdx = 0;
-    
+
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &arr) == FAILURE) {
         RETURN_NULL();
     }
