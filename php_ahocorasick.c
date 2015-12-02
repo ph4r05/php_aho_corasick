@@ -494,8 +494,7 @@ PHP_FUNCTION(ahocorasick_init)
     HashPosition pointer;
     int array_count;
     int curIdx = 0;
-
-    TSRMLS_FETCH();
+    
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &arr) == FAILURE) {
         RETURN_NULL();
     }
