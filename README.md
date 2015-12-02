@@ -1,38 +1,33 @@
-php_aho_corasick
-================
+# php_aho_corasick
 [![Build Status](https://travis-ci.org/ph4r05/php_aho_corasick.svg?branch=master)](https://travis-ci.org/ph4r05/php_aho_corasick)
 
-PHP extension implementing Aho-Corasick algorithm (see http://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_string_matching_algorithm ).
+PHP extension implementing Aho-Corasick pattern matching algorithm (more on [wiki]).
 
 Is especially effective if there is a large database of needles (=strings to be searched, for example virus signatures). 
 Another advantage is that built search structure is initialized before search in separate call thus it can be called
 more times with different haystack, saving time.
 
-Effectivity of this algorithm is also supported by speed of PHP Extensions (compared to pure php implementation).
+Computing Aho-Corasick in th native code (PHP extension) rather than in a pure PHP manner gives this implementation 
+significant performance boost.
 
-Dependencies
-=============
-This project is simple PHP wrapper of (or interface to) another project:
-MultiFast: http://sourceforge.net/projects/multifast/?source=dlp
+## Dependencies
+This project is simple PHP wrapper of (or interface to) another project: [MultiFast]. Sources include MultiFast library v 2.0.
+No extra dependencies are required. [MultiFast] library is wrapped as PHP extension loadable to PHP.
 
-Source of inspiration for this project was a great tutorial:
-http://devzone.zend.com/446/extension-writing-part-iii-resources/
+Source of inspiration for this project was a great [tutorial].
 
-Aho-Corasick C library is wrapped as PHP extension loadable to PHP.
-
-Build
-=====
+## Build
 ```bash
 phpize
 ./configure --enable-ahocorasick
 make
 ```
 
-Usage
-=====
-This extension is case sensitive, thus if you want case insensitive, convert every string input to this algorithm to lowercase (use mb_strtolower() for example).
+## Usage
+This extension is case sensitive, thus if you want case insensitive, convert every string input to this algorithm to 
+lowercase (use mb_strtolower() for example).
 
-If you want to detect equality, compare also length of needle and haystack (for example).
+For more usage examples, see provided testing examples.
 
 test.php:
 ```php
@@ -114,8 +109,7 @@ array(5) {
 }
 ```
 
-Benchmark
-==========
+## Benchmark
 In this repo you can find benchmark.php file, with this you can perform your own benchmark and measure speed up.
 
 My setup generates random haystacks and needles from alphabet="abcdef". There is performed 5 measurements of time spent by search and average is computed.
@@ -138,3 +132,38 @@ AhoCorasick pattern matching is 74.921962 times faster than naive approach
 
 Speedup: 74x compared to the naive approach.
 
+## API
+Documentation writing is in progress.
+
+Basic ideas of the API:
+* AhoCorasick pattern matching engine has to be initialized (`ahocorasick_init()`) before use and deinitialized (`ahocorasick_deinit()`) 
+after use so memory is handled properly.
+* Engine has to be fed with pattern matching rules, given as array of rules, either to initialization function (`ahocorasick_init()`)
+or later (`ahocorasick_add_patterns()`).
+* After engine is finalized (`ahocorasick_finalize()`) or a first matching is performed (`ahocorasick_match()`) no further patterns are
+allowed, as underlying searching trie is finalized.
+* When matching finishes, it returns array of matched results. Each entry determines position of the found occurrence and pattern 
+that was matched. 
+
+
+Rules:
+* Simplest pattern looks like: 
+```php
+array('value'=>'lorem')
+```
+* Pattern can be identified, so it is easier to process result from match call. Either by string
+```php
+array('key'=>'ae', 'value'=>'delta')
+```
+or integer
+```php
+array('id'=>0, 'value'=>'zeta')
+```
+* Pattern can carry an arbitrary object
+```php
+array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1))
+``` 
+
+[wiki]: http://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_string_matching_algorithm
+[MultiFast]: http://sourceforge.net/projects/multifast/?source=dlp
+[tutorial]: http://devzone.zend.com/446/extension-writing-part-iii-resources/
