@@ -242,6 +242,18 @@ static inline int php_ac_process_pattern(ahostruct * tmpStruct, HashTable * arr_
         }
     }
 
+    // sanity check, if failed, return false
+    if (returnCode == 0 && tmpStruct->value==NULL){
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified for pattern!");
+        returnCode = -2;
+    }
+
+    // numeric key and string identifier are mutually exclusive
+    if (returnCode == 0 && (allKeys & 0x1) && (allKeys & 0x8)){
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both!");
+        returnCode = -3;
+    }
+
     // If everything went well, we can return successfully.
     if (returnCode == 0){
         return 0;
@@ -347,27 +359,10 @@ static inline int php_ac_process_patterns(ahoMasterStruct * master, HashTable * 
         prevPattern = tmpStruct;
 
         // iterate over sub array
-        unsigned long allKeys = 0;
-        zval **data_sub;
         HashTable *arr_hash_sub = Z_ARRVAL_P(*data);
         int status_code = php_ac_process_pattern(tmpStruct, arr_hash_sub TSRMLS_CC);
-
         if (status_code != 0){
             pattern_processing_status = -1;
-            break;
-        }
-
-        // sanity check, if failed, return false
-        if (tmpStruct->value==NULL){
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified for pattern!");
-            pattern_processing_status = -2;
-            break;
-        }
-
-        // numeric key and string identifier are mutually exclusive
-        if ((allKeys & 0x1) && (allKeys & 0x8)){
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both!");
-            pattern_processing_status = -3;
             break;
         }
     }
@@ -484,7 +479,7 @@ PHP_MSHUTDOWN_FUNCTION(ahocorasick)
  * 
  * Calls PHP function mb_strtolower from user space
  */
-char * mb_strtolower(char * input TSRMLS_CC){
+char * mb_strtolower(char * input TSRMLS_DC){
     zval ret, function_name, *params[1];
     
     // construct function to call
@@ -670,11 +665,7 @@ PHP_FUNCTION(ahocorasick_deinit)
 PHP_FUNCTION(ahocorasick_init)
 {
     zval *arr;
-    zval **data;
     HashTable *arr_hash;
-    HashPosition pointer;
-    int array_count;
-    int curIdx = 0;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &arr) == FAILURE) {
         RETURN_NULL();
