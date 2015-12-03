@@ -46,7 +46,6 @@ addons:
       name: "ph4r05/php_aho_corasick"
       description: "PHP extension for fast pattern matching using AhoCorasick algorithm"
     notification_email: ph4r05@gmail.com
-    build_command_prepend: echo "test"
     build_command:   ./build.sh
     branch_pattern: coverity_scan
 
