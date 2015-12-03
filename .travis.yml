@@ -33,6 +33,23 @@ addons:
     - cmake
     - time
 
+#Coverity
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "vMCan2hMWKZOmYDRximgj8Z+yQqVNsaA0FJ83eOjVmjjy2xxNVc53u0Qisq/FJf+1aGTz1FIz/xoSeV5tC7Gbpk6J23D98NUMX/6IfrbXl5mvLFyg4kKd8MPo4tonDMalXtbbzaaipYSRDgav/POK0A/NhrT3dmAw8t43jYu47to/uUyQULZDjPQKg/3hcDaEXQ0bXW6JMGnL73Tkx9FbYNHkAbLq8apEUpKDmfe1tyij3J5t29EjJMzFAkDTJ4fDFvFTpoM28WjKagwMQgjfNIaYYKQKtwGMcbua/lrDTxbRf3LSBwRE0oVLWW1g+9gfwEmQN0JsTnQQvzn5iPeKgdu1/ENgVKY6bz66wlMQXPL4QXUPFmZD43uzxjbr28PL9yjcmoQa+S3pgRi5hjoBl0vfKb1xBOkSsMCkxakjdYIVbQ0r6+UbNDsFq21CRsRFFXAkUvnQUpH285uo8IPYoyBM2xIi2Z3YlUjugdnee/m+th2sDRIDRUXZUC7a+BpjabvvlrFpTRH5WqaebtB04D4sH0qwIIR5s24w6MlZyVKBigamboTMg52tFshlE7w1AkWBqa0ZzrIeJvTzvoR6QEoU3r89vo3KKn4TX52ko/gG0HGq49zd2sKvTsJnzPb0Z1+AbSDbI145M7uU6hi5JQcIW9pCPmEgG6T97p3tUg="
+
+addons:
+  coverity_scan:
+    project:
+      name: "ph4r05/php_aho_corasick"
+      description: "PHP extension for fast pattern matching using AhoCorasick algorithm"
+    notification_email: ph4r05@gmail.com
+    build_command_prepend: echo "test"
+    build_command:   ./build.sh
+    branch_pattern: coverity_scan
+
 script: ./build.sh
 
 # optionally set up exclutions and allowed failures in the matrix
