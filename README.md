@@ -1,5 +1,6 @@
 # php_aho_corasick
 [![Build Status](https://travis-ci.org/ph4r05/php_aho_corasick.svg?branch=master)](https://travis-ci.org/ph4r05/php_aho_corasick)
+[![Coverity Status](https://scan.coverity.com/projects/7177/badge.svg)](https://scan.coverity.com/projects/ph4r05-php_aho_corasick)
 
 PHP extension implementing Aho-Corasick pattern matching algorithm (more on [wiki]).
 
