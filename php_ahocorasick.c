@@ -558,8 +558,8 @@ PHP_MSHUTDOWN_FUNCTION(ahocorasick)
  */
 PHP_FUNCTION(ahocorasick_isValid)
 {
-    zval *zval_aho_master;
-    ahocorasick_master_t * ahoMaster;
+    zval *zval_aho_master = NULL;
+    ahocorasick_master_t * ahoMaster = NULL;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
         RETURN_NULL();
     }
@@ -585,7 +585,7 @@ PHP_FUNCTION(ahocorasick_match)
     char *lowered, *normal;
     zval *uservar=NULL, *zval_aho_master=NULL;
     zend_bool findAll = 1;
-    ahocorasick_master_t * ahoMaster;
+    ahocorasick_master_t * ahoMaster = NULL;
     AC_TEXT_t tmp_text;
     
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz|b", &uservar, &zval_aho_master, &findAll) == FAILURE) {
@@ -593,7 +593,7 @@ PHP_FUNCTION(ahocorasick_match)
     }
     
     // fetch resource passed as parameter
-    ZEND_FETCH_RESOURCE(ahoMaster, ahocorasick_master_t*, &zval_aho_master, -1, PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
+    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
     if (ahoMaster==NULL){
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid resource.");
         RETURN_FALSE;
@@ -641,15 +641,16 @@ PHP_FUNCTION(ahocorasick_match)
  */
 PHP_FUNCTION(ahocorasick_deinit)
 {
-    zval *zval_aho_master;
-    ahocorasick_master_t * ahoMaster;
+    zval *zval_aho_master = NULL;
+    ahocorasick_master_t * ahoMaster = NULL;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
         RETURN_NULL();
     }
     
     // fetch resource passed as parameter
-    ZEND_FETCH_RESOURCE(ahoMaster, ahocorasick_master_t*, &zval_aho_master, -1, PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
-    // already empty?
+    // You may use ZEND_FETCH_RESOURCE(ahoMaster, ahocorasick_master_t*, &zval_aho_master, -1, PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
+    // This macro checks if is null.
+    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
     if (ahoMaster==NULL){
         RETURN_FALSE;
     }
@@ -711,8 +712,8 @@ PHP_FUNCTION(ahocorasick_init)
  */
 PHP_FUNCTION(ahocorasick_finalize)
 {
-    zval *zval_aho_master;
-    ahocorasick_master_t * ahoMaster;
+    zval *zval_aho_master = NULL;
+    ahocorasick_master_t * ahoMaster = NULL;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
         RETURN_NULL();
     }
@@ -737,10 +738,10 @@ PHP_FUNCTION(ahocorasick_finalize)
  */
 PHP_FUNCTION(ahocorasick_add_patterns)
 {
-    zval *zval_aho_master;
-    zval *arr;
-    ahocorasick_master_t * ahoMaster;
-    HashTable *arr_hash;
+    zval *zval_aho_master = NULL;
+    zval *arr = NULL;
+    ahocorasick_master_t *ahoMaster = NULL;
+    HashTable *arr_hash = NULL;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "za", &zval_aho_master, &arr) == FAILURE) {
         RETURN_NULL();
