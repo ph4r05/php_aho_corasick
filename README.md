@@ -17,6 +17,13 @@ No extra dependencies are required. [MultiFast] library is wrapped as PHP extens
 
 Source of inspiration for this project was a great [tutorial].
 
+## PECL & Licensing
+The original project [MultiFast] is licensed under LGPLv3 so this PHP wrapper is also licensed under LGPLv3.
+Thanks to the author of the [MultiFast] who gave me a [permission] to license the code under PHP License 3.01 for the purpose
+of adding a extension to PECL repository. 
+
+At the moment the PECL approval is in the progress. Stay tuned.
+
 ## Build
 ```bash
 phpize
@@ -168,3 +175,4 @@ array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1))
 [wiki]: http://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_string_matching_algorithm
 [MultiFast]: http://sourceforge.net/projects/multifast/?source=dlp
 [tutorial]: http://devzone.zend.com/446/extension-writing-part-iii-resources/
+[permission]: https://sourceforge.net/p/multifast/discussion/1317362/thread/dc5b4a1e/#a0a2
