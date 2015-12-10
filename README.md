@@ -19,8 +19,8 @@ Source of inspiration for this project was a great [tutorial].
 
 ## PECL & Licensing
 The original project [MultiFast] is licensed under LGPLv3 so this PHP wrapper is also licensed under LGPLv3.
-Thanks to the author of the [MultiFast] who gave me a [permission] to license the code under PHP License 3.01 for the purpose
-of adding a extension to PECL repository. 
+Thanks to the [author] of the [MultiFast], Kamiar Kanani, who gave me a [permission] to license the code under PHP License 3.01 for the purpose
+of adding this extension to PECL repository. 
 
 At the moment the PECL approval is in the progress. Stay tuned.
 
@@ -176,3 +176,4 @@ array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1))
 [MultiFast]: http://sourceforge.net/projects/multifast/?source=dlp
 [tutorial]: http://devzone.zend.com/446/extension-writing-part-iii-resources/
 [permission]: https://sourceforge.net/p/multifast/discussion/1317362/thread/dc5b4a1e/#a0a2
+[author]: https://sourceforge.net/u/kamiark/
