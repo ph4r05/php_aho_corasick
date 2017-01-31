@@ -172,6 +172,19 @@ array('id'=>0, 'value'=>'zeta')
 array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1))
 ``` 
 
+Donating
+========
+
+This implementation is an open source. If you like the code or you do find it useful please feel free to donate to the
+author whatever amount you would like by clicking on the paypal button below.
+And if you don't feel like donating, that's OK too.
+
+[![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=XK6RLD768RGGJ&lc=SK&item_name=ph4r05&item_number=php_aho_corasick%2egit&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted)
+
+Bitcoin:
+
+![1Gh3TC55L4FjCyS2y5WKc4EGMYBYa6qvDw](https://deadcode.me/btc-aho.png)<br />1Gh3TC55L4FjCyS2y5WKc4EGMYBYa6qvDw
+
 [wiki]: http://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_string_matching_algorithm
 [MultiFast]: http://sourceforge.net/projects/multifast/?source=dlp
 [tutorial]: http://devzone.zend.com/446/extension-writing-part-iii-resources/
