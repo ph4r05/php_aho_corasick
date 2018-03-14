@@ -116,12 +116,12 @@ static inline int php_ahocorasick_reset_pattern(ahocorasick_pattern_t * tmpStruc
 
     tmpStruct->ignoreCase=0;
     tmpStruct->key=NULL;
-    tmpStruct->zKey=NULL;
+    ZVAL_UNDEF(&tmpStruct->zKey);
     tmpStruct->keyId=0;
     tmpStruct->keyType=AC_PATTID_TYPE_DEFAULT;
     tmpStruct->value=NULL;
-    tmpStruct->zVal=NULL;
-    tmpStruct->auxObj=NULL;
+    ZVAL_UNDEF(&tmpStruct->zVal);
+    ZVAL_UNDEF(&tmpStruct->auxObj);
     return 0;
 }
 
@@ -133,21 +133,21 @@ static inline int php_ahocorasick_dealloc_pattern(ahocorasick_pattern_t * tmpStr
         return -1;
     }
 
-    if (tmpStruct->auxObj != NULL){
+    if (!Z_ISUNDEF(tmpStruct->auxObj)){
         zval_ptr_dtor(&(tmpStruct->auxObj));
-        tmpStruct->auxObj = NULL;
+        ZVAL_UNDEF(&tmpStruct->auxObj);
     }
 
-    if (tmpStruct->key != NULL && tmpStruct->zKey != NULL) {
+    if (tmpStruct->key != NULL && !Z_ISUNDEF(tmpStruct->zKey)) {
         zval_ptr_dtor(&(tmpStruct->zKey));
         tmpStruct->key = NULL;
-        tmpStruct->zKey = NULL;
+        ZVAL_UNDEF(&tmpStruct->zKey);
     }
 
-    if (tmpStruct->value != NULL && tmpStruct->zVal != NULL) {
+    if (tmpStruct->value != NULL && !Z_ISUNDEF(tmpStruct->zVal)) {
         zval_ptr_dtor(&(tmpStruct->zVal));
         tmpStruct->value = NULL;
-        tmpStruct->zVal = NULL;
+        ZVAL_UNDEF(&tmpStruct->zVal);
     }
 
     php_ahocorasick_reset_pattern(tmpStruct);
@@ -163,34 +163,33 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
     // iterate over sub array
     int returnCode = 0;
     unsigned long allKeys = 0;
-    zval **data_sub;
+    zval *data_sub;
     HashPosition pointer_sub;
-    for (zend_hash_internal_pointer_reset_ex(arr_hash_sub, &pointer_sub);
-         zend_hash_get_current_data_ex(arr_hash_sub, (void**) &data_sub, &pointer_sub) == SUCCESS;
-         zend_hash_move_forward_ex(arr_hash_sub, &pointer_sub))
+    zend_long num_key;
+    zend_string *key;
+    ZEND_HASH_FOREACH_KEY_VAL(arr_hash_sub, num_key, key, data_sub)
     {
-        char *key;
-        unsigned int key_len;
-        unsigned long index;
         unsigned long keyFound = 0;
 
         // obtain array key
-        if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer_sub) != HASH_KEY_IS_STRING) {
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure (bad sub-array key)! Cannot initialize.");
-            returnCode = -1;
-            break;
-        }
+//        if (!key) {
+//            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure (bad sub-array key)! Cannot initialize.");
+//            returnCode = -1;
+//            break;
+//        }
 
         // determine known keys
-        if (strcasecmp("key", key)==0){
-            keyFound|=1;
-        } else if (strcasecmp("value", key)==0){
+        if (!key){
             keyFound|=2;
-        } else if (strcasecmp("ignoreCase", key)==0){
+        }else if (zend_string_equals_ci(zend_string_init(ZEND_STRL("key"), 0), key)){
+            keyFound|=1;
+        } else if (zend_string_equals_ci(zend_string_init(ZEND_STRL("value"), 0), key)){
+            keyFound|=2;
+        } else if (zend_string_equals_ci(zend_string_init(ZEND_STRL("ignoreCase"), 0), key)){
             keyFound|=4;
-        } else if (strcasecmp("id", key)==0){
+        } else if (zend_string_equals_ci(zend_string_init(ZEND_STRL("id"), 0), key)){
             keyFound|=8;
-        } else if (strcasecmp("aux", key)==0){
+        } else if (zend_string_equals_ci(zend_string_init(ZEND_STRL("aux"), 0), key)){
             keyFound|=0x10;
         } else {
             php_error_docref(NULL TSRMLS_CC, E_WARNING,
@@ -203,7 +202,7 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
 
         // Numeric identifier
         if ((keyFound & 0x8) > 0){
-            long keyId = Z_LVAL(**data_sub);
+            long keyId = Z_LVAL(*data_sub);
             tmpStruct->keyId = keyId;
             tmpStruct->keyType = AC_PATTID_TYPE_NUMBER;
         }
@@ -212,22 +211,22 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
         if ((keyFound & 0x10) > 0){
             // No copying using same reference.
             tmpStruct->auxObj = *data_sub;
-            Z_ADDREF_P(*data_sub);
+            //Z_ADDREF_P(*data_sub);
         }
 
         // ignoreCase - deprecated.
         if ((keyFound & 0x4) > 0){
             // convert to boolean
-            int tmpBool = Z_BVAL(**data_sub);
-            tmpStruct->ignoreCase = tmpBool;
+            //int tmpBool = Z_BVAL(*data_sub);
+            tmpStruct->ignoreCase = 0;
         }
 
         // key/value present -> process
         if ((keyFound & 0x3) > 0){
             char * stmp = NULL;
             // Avoid string copy, use reference counting.
-            stmp = Z_STRVAL(**data_sub);
-            Z_ADDREF_P(*data_sub);
+            stmp = Z_STRVAL(*data_sub);
+            //Z_ADDREF_P(*data_sub);
             if (keyFound == 0x1){
                 // key
                 tmpStruct->zKey = *data_sub;
@@ -237,10 +236,10 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
                 // value
                 tmpStruct->zVal = *data_sub;
                 tmpStruct->value = stmp;
-                tmpStruct->valueLen = Z_STRLEN(**data_sub);
+                tmpStruct->valueLen = Z_STRLEN(*data_sub);
             }
         }
-    }
+    } ZEND_HASH_FOREACH_END();
 
     // sanity check, if failed, return false
     if (returnCode == 0 && tmpStruct->value==NULL){
@@ -322,12 +321,12 @@ static inline int php_ahocorasick_release_patterns(ahocorasick_master_t * master
  */
 static inline int php_ahocorasick_process_patterns(ahocorasick_master_t * master, HashTable * arr_hash TSRMLS_DC){
     int pattern_processing_status = 0;
-    zval *arr;
-    zval **data;
+    zval arr;
+    zval *data;
     HashPosition pointer;
     int array_count;
-    int curIdx = 0;
-
+    zend_long  curIdx = 0;
+    zend_string  *key;
     ahocorasick_pattern_t * p0 = NULL;
     ahocorasick_pattern_t * p1 = NULL;
     ahocorasick_pattern_t * prevPattern = NULL;
@@ -335,12 +334,12 @@ static inline int php_ahocorasick_process_patterns(ahocorasick_master_t * master
     array_count = zend_hash_num_elements(arr_hash);
 
     // iterate input initialized array
-    for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer);
-        zend_hash_get_current_data_ex(arr_hash, (void**) &data, &pointer) == SUCCESS;
-        zend_hash_move_forward_ex(arr_hash, &pointer), curIdx++) {
-
+    //for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer);
+    //    zend_hash_get_current_data_ex(arr_hash, (void*) &data, &pointer) == SUCCESS;
+    //    zend_hash_move_forward_ex(arr_hash, &pointer), curIdx++) {
+    ZEND_HASH_FOREACH_KEY_VAL(arr_hash, curIdx, key, data) {
         // check structure
-        if (Z_TYPE_PP(data) != IS_ARRAY) {
+        if (Z_TYPE_P(data) != IS_ARRAY) {
             php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid pattern structure! Cannot initialize.");
             pattern_processing_status = -4;
             break;
@@ -361,13 +360,13 @@ static inline int php_ahocorasick_process_patterns(ahocorasick_master_t * master
         prevPattern = tmpStruct;
 
         // iterate over sub array
-        HashTable *arr_hash_sub = Z_ARRVAL_P(*data);
+        HashTable *arr_hash_sub = Z_ARRVAL_P(data);
         int status_code = php_ahocorasick_process_pattern(tmpStruct, arr_hash_sub TSRMLS_CC);
         if (status_code != 0){
             pattern_processing_status = -1;
             break;
         }
-    }
+    } ZEND_HASH_FOREACH_END();
 
     // if processing failed, free memory.
     if (pattern_processing_status != 0){
@@ -431,7 +430,7 @@ static inline int php_ahocorasick_process_patterns(ahocorasick_master_t * master
 /**
  * Destructor of ahocorasick_pattern_t resource
  */
-static void php_ahocorasick_pattern_t_master_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+static void php_ahocorasick_pattern_t_master_dtor(zend_resource *rsrc)
 {
     long i=0;
     ahocorasick_master_t *aho = (ahocorasick_master_t*)rsrc->ptr;
@@ -464,10 +463,10 @@ static char * php_ahocorasick_mb_strtolower(char * input TSRMLS_DC){
     zval ret, function_name, *params[1];
 
     // construct function to call
-    ZVAL_STRING(&function_name, "mb_strtolower", 0);
+    ZVAL_STRING(&function_name, "mb_strtolower");
     // construct parameter to pass to target function
-    MAKE_STD_ZVAL(params[0]);
-    ZVAL_STRING(params[0], input, 1);
+    //MAKE_STD_ZVAL(params[0]);
+    ZVAL_STRING(params[0], input);
     // invoke target function
     if (call_user_function(EG(function_table), NULL, &function_name, &ret, 1, params TSRMLS_CC) == SUCCESS){
         return Z_STRVAL(ret);
@@ -483,21 +482,21 @@ static char * php_ahocorasick_mb_strtolower(char * input TSRMLS_DC){
 static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
 {
     // variable to hold sub array - one found result
-    zval * mysubarray;
+    zval mysubarray;
     unsigned int j;
 
     /* example of sending parameter to call-back function */
     struct ahocorasick_callback_payload_t * myp = (struct ahocorasick_callback_payload_t *) param;
-    if (myp->resultArray == NULL) {
+    if (Z_ISUNDEF(myp->resultArray)) {
         // invalid condition - result array not initialized
         return 0;
     }
 
     for (j = 0; j < m->size; j++) {
         // dump found matches to result array
-        ALLOC_INIT_ZVAL(mysubarray);
-        array_init(mysubarray);
-        add_assoc_long(mysubarray, "pos", m->position);
+        //ALLOC_INIT_ZVAL(mysubarray);
+        array_init(&mysubarray);
+        add_assoc_long(&mysubarray, "pos", m->position);
 
         ahocorasick_pattern_t * curPattern = (ahocorasick_pattern_t *) m->patterns[j].aux;
         if (curPattern == NULL){
@@ -505,24 +504,25 @@ static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
         }
 
         if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
-            add_assoc_zval(mysubarray, "key", curPattern->zKey);
-            Z_ADDREF_P(curPattern->zKey);
+            add_assoc_zval(&mysubarray, "key", &curPattern->zKey);
+            //Z_ADDREF_P(curPattern->zKey);
 
         } else if (m->patterns[j].id.type == AC_PATTID_TYPE_NUMBER){
-            add_assoc_long(mysubarray, "keyIdx", m->patterns[j].id.u.number);
+            add_assoc_long(&mysubarray, "keyIdx", m->patterns[j].id.u.number);
 
         }
 
-        if (curPattern->auxObj != NULL){
-            add_assoc_zval(mysubarray, "aux", curPattern->auxObj);
-            Z_ADDREF_P(curPattern->auxObj);
+        if (!Z_ISUNDEF(curPattern->auxObj)){
+            add_assoc_zval(&mysubarray, "aux", &curPattern->auxObj);
+            //Z_ADDREF_P(curPattern->auxObj);
         }
 
-        add_assoc_zval(mysubarray, "value", curPattern->zVal);
-        Z_ADDREF_P(curPattern->zVal);
+        add_assoc_long(&mysubarray, "start_postion", (m->position - Z_STRLEN_P(&curPattern->zVal)));
+        add_assoc_zval(&mysubarray, "value", &curPattern->zVal);
+        //Z_ADDREF_P(curPattern->zVal);
 
         // add to aggregate array
-        add_next_index_zval(myp->resultArray, mysubarray);
+        add_next_index_zval(&myp->resultArray, &mysubarray);
     }
 
     // return 1 if we want to find just first
@@ -558,15 +558,15 @@ PHP_MSHUTDOWN_FUNCTION(ahocorasick)
  */
 PHP_FUNCTION(ahocorasick_isValid)
 {
-    zval *zval_aho_master = NULL;
+    zend_resource *zval_aho_master;
     ahocorasick_master_t * ahoMaster = NULL;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
-        RETURN_NULL();
-    }
+    zval *zid;
+    ZEND_PARSE_PARAMETERS_START(1,1)
+      		Z_PARAM_RESOURCE(zid)
+  	ZEND_PARSE_PARAMETERS_END();
     
     // fetch resource passed as parameter
-    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, PHP_AHOSTRUCT_MASTER_RES_NAME);
-    if (ahoMaster==NULL || ahoMaster->init_ok != 1){
+    if((ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid) ,  PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master))==NULL || ahoMaster->init_ok != 1){
         RETURN_FALSE;
     } else {
         RETURN_TRUE;
@@ -583,18 +583,22 @@ PHP_FUNCTION(ahocorasick_isValid)
 PHP_FUNCTION(ahocorasick_match)
 {
     char *lowered, *normal;
-    zval *uservar=NULL, *zval_aho_master=NULL;
+    zend_string *uservar;
+	zend_resource *zval_aho_master;
     zend_bool findAll = 1;
     ahocorasick_master_t * ahoMaster = NULL;
+    zval       *zid;
     AC_TEXT_t tmp_text;
-    
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz|b", &uservar, &zval_aho_master, &findAll) == FAILURE) {
-        RETURN_NULL();
-    }
-    
+
+    ZEND_PARSE_PARAMETERS_START(2,3)
+    		Z_PARAM_STR(uservar)
+    		Z_PARAM_RESOURCE(zid)
+			Z_PARAM_OPTIONAL
+    		Z_PARAM_BOOL(findAll)
+    	ZEND_PARSE_PARAMETERS_END();
     // fetch resource passed as parameter
-    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
-    if (ahoMaster==NULL){
+
+    if((ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid) ,  PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master))==NULL){
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid resource.");
         RETURN_FALSE;
     }
@@ -607,28 +611,28 @@ PHP_FUNCTION(ahocorasick_match)
     // finalize trie if not finalized already
     php_ahocorasick_finalize(ahoMaster);
 
-    normal = Z_STRVAL_P(uservar);
+    normal = ZSTR_VAL(uservar);
 #ifdef AHOCORASICK_USE_LOWER
     // at first, obtain also lower case variant
     // strtolower is disabled now, exact match is required
-    lowered = php_ahocorasick_mb_strtolower(Z_STRVAL_P(uservar) TSRMLS_CC);
+    lowered = php_ahocorasick_mb_strtolower(Z_STR_P(uservar) TSRMLS_CC);
     tmp_text.astring = lowered;
 #else
     //*** 6. Set input text
     tmp_text.astring = normal;
 #endif
-    tmp_text.length = Z_STRLEN_P(uservar);
+    tmp_text.length = ZSTR_LEN(uservar);
 
     /* Sending parameter to call-back function */
     // initialize return array
     array_init(return_value);
     struct ahocorasick_callback_payload_t my_param;
     my_param.retVal = 0;
-    my_param.resultArray = return_value;
+    my_param.resultArray = *return_value;
     
     // find all defined
     my_param.retVal = findAll ? 0:1;
-    
+
     //*** 7. Do search
     ac_trie_search(ahoMaster->acap, &tmp_text, 0, php_ahocorasick_match_handler, (void *)(&my_param));
 }
@@ -641,23 +645,21 @@ PHP_FUNCTION(ahocorasick_match)
  */
 PHP_FUNCTION(ahocorasick_deinit)
 {
-    zval *zval_aho_master = NULL;
+    zend_resource *zval_aho_master;
     ahocorasick_master_t * ahoMaster = NULL;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
-        RETURN_NULL();
-    }
-    
-    // fetch resource passed as parameter
-    // You may use ZEND_FETCH_RESOURCE(ahoMaster, ahocorasick_master_t*, &zval_aho_master, -1, PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
-    // This macro checks if is null.
-    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
-    if (ahoMaster==NULL){
+    zval *zid;
+    ZEND_PARSE_PARAMETERS_START(1,1)
+     		Z_PARAM_RESOURCE(zid)
+    ZEND_PARSE_PARAMETERS_END();
+        // fetch resource passed as parameter
+
+    if((ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid) ,  PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master))==NULL){
         RETURN_FALSE;
     }
     
     // delete now
     php_ahocorasick_finalize(ahoMaster);
-    zend_list_delete(Z_LVAL_P(zval_aho_master));
+    //zend_list_delete(zval_aho_master);
     RETURN_TRUE;
 }
 
@@ -697,8 +699,8 @@ PHP_FUNCTION(ahocorasick_init)
     // pass ACAP object - holding aho automaton
     ahomaster->init_ok = 1;
     // register this resource for ZEND engine
-    ZEND_REGISTER_RESOURCE(return_value, ahomaster, le_ahocorasick_master);
-        
+    ZVAL_RES(return_value, zend_register_resource(ahomaster, le_ahocorasick_master));
+    Z_RES_P(return_value);
     // ahocorasick_pattern_t build OK.
     // Keep in mind that we are not freeing strings allocated in memory, it is 
     // still used internally in aho structure, this free is postponed to releasing
@@ -712,15 +714,15 @@ PHP_FUNCTION(ahocorasick_init)
  */
 PHP_FUNCTION(ahocorasick_finalize)
 {
-    zval *zval_aho_master = NULL;
+    zend_resource *zval_aho_master;
     ahocorasick_master_t * ahoMaster = NULL;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
-        RETURN_NULL();
-    }
+    zval *zid;
+    ZEND_PARSE_PARAMETERS_START(1,1)
+    	Z_PARAM_RESOURCE(zid)
+    ZEND_PARSE_PARAMETERS_END();
 
     // fetch resource passed as parameter
-    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
-    if (ahoMaster==NULL){
+    if((ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid) ,  PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master))==NULL){
         RETURN_FALSE;
     } else {
         if (php_ahocorasick_finalize(ahoMaster)) {
@@ -738,20 +740,20 @@ PHP_FUNCTION(ahocorasick_finalize)
  */
 PHP_FUNCTION(ahocorasick_add_patterns)
 {
-    zval *zval_aho_master = NULL;
-    zval *arr = NULL;
+    zend_resource *zval_aho_master;
+    zval *arr;
     ahocorasick_master_t *ahoMaster = NULL;
     HashTable *arr_hash = NULL;
-
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "za", &zval_aho_master, &arr) == FAILURE) {
-        RETURN_NULL();
-    }
+    zval *zid;
+    ZEND_PARSE_PARAMETERS_START(2,2)
+     		Z_PARAM_RESOURCE(zid)
+			Z_PARAM_ARRAY(arr)
+    ZEND_PARSE_PARAMETERS_END();
 
     arr_hash = Z_ARRVAL_P(arr);
 
     // fetch resource passed as parameter
-    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
-    if (ahoMaster == NULL || ahoMaster->init_ok != 1){
+    if((ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid) ,  PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master))==NULL || ahoMaster->init_ok != 1){
         php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot add a new pattern, not initialized");
         RETURN_FALSE;
     }
