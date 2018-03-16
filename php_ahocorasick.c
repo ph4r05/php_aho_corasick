@@ -217,8 +217,8 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
         // ignoreCase - deprecated.
         if ((keyFound & 0x4) > 0){
             // convert to boolean
-            int tmpBool = Z_BVAL(*data_sub);
-            tmpStruct->ignoreCase = tmpBool;
+            //int tmpBool = Z_BVAL(*data_sub);
+            tmpStruct->ignoreCase = 0;
         }
 
         // key/value present -> process
