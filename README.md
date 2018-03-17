@@ -17,6 +17,8 @@ No extra dependencies are required. [MultiFast] library is wrapped as PHP extens
 
 Source of inspiration for this project was a great [tutorial].
 
+This version is only compatible with php 7.0.0+
+
 ## PECL & Licensing
 The original project [MultiFast] is licensed under LGPLv3 so this PHP wrapper is also licensed under LGPLv3.
 Thanks to the [author] of the [MultiFast], Kamiar Kanani, who gave me a [permission] to license the code under PHP License 3.01 for the purpose
@@ -67,7 +69,7 @@ Results with:
 ```
 array(5) {
   [0]=>
-  array(4) {
+  array(5) {
     ["pos"]=>
     int(14)
     ["key"]=>
@@ -77,40 +79,50 @@ array(5) {
       [0]=>
       int(1)
     }
+    ["start_postion"]=>
+    int(9)
     ["value"]=>
     string(5) "gamma"
   }
   [1]=>
-  array(3) {
+  array(4) {
     ["pos"]=>
     int(19)
     ["keyIdx"]=>
     int(0)
+    ["start_postion"]=>
+    int(15)
     ["value"]=>
     string(4) "zeta"
   }
   [2]=>
-  array(3) {
+  array(4) {
     ["pos"]=>
     int(24)
     ["key"]=>
     string(2) "ag"
+    ["start_postion"]=>
+    int(19)
     ["value"]=>
     string(5) "omega"
   }
   [3]=>
-  array(3) {
+  array(4) {
     ["pos"]=>
     int(28)
     ["key"]=>
     string(2) "ab"
+    ["start_postion"]=>
+    int(24)
     ["value"]=>
     string(4) "alfa"
   }
   [4]=>
-  array(2) {
+  array(3) {
     ["pos"]=>
     int(28)
+    ["start_postion"]=>
+    int(25)
     ["value"]=>
     string(3) "lfa"
   }
@@ -152,12 +164,14 @@ or later (`ahocorasick_add_patterns()`).
 allowed, as underlying searching trie is finalized.
 * When matching finishes, it returns array of matched results. Each entry determines position of the found occurrence and pattern 
 that was matched. 
-
+* Modifications made during the php 7 migration: 
+** 'value' is the default key when adding patterns.
+** 'start_postion' field added to the results. The original algorithm returns the end position of the matched patterns.
 
 Rules:
 * Simplest pattern looks like: 
 ```php
-array('value'=>'lorem')
+array('lorem')
 ```
 * Pattern can be identified, so it is easier to process result from match call. Either by string
 ```php

@@ -50,7 +50,7 @@ ZEND_END_MODULE_GLOBALS(ahocorasick)
 struct ahocorasick_callback_payload_t {
         // found match will be added here
         int retVal;
-        zval * resultArray;
+        zval  resultArray;
 };
 
 /**
@@ -60,14 +60,14 @@ typedef struct ahocorasick_pattern_t {
     char *key;
     long keyId;
     enum ac_pattid_type keyType;
-    zval * zKey;
+    zval  zKey;
 
     char *value;
     int valueLen;
-    zval * zVal;
+    zval  zVal;
 
     int ignoreCase;
-    zval * auxObj;
+    zval  auxObj;
 
     struct ahocorasick_pattern_t * next;
     struct ahocorasick_pattern_t * prev;
