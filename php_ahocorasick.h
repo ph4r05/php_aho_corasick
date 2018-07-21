@@ -26,6 +26,76 @@
 #include "TSRM.h"
 #endif
 
+// Compatibility
+#if PHP_MAJOR_VERSION < 7
+#define PHP7 0
+typedef long zend_long;
+typedef char zend_string;
+typedef int strsize_t;
+#define COMPAT_ZVAL zval *
+#define COMPAT_ZVAL_UNDEF(x) x = NULL
+#define COMPAT_Z_ISUNDEF(x) (x == NULL)
+#define COMPAT_Z_RESOURCE zval
+#define COMPAT_ZEND_HASH_FOREACH_KEY_VAL(arr_hash, idx, key, data) \
+  { HashPosition pointer; \
+  for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer); \
+        zend_hash_get_current_data_ex(arr_hash, (void**) &(data), &pointer) == SUCCESS;  \
+        zend_hash_move_forward_ex(arr_hash, &pointer), (idx)+=1)
+#define COMPAT_ZEND_HASH_FOREACH_END() }
+
+#define COMPAT_STR_EQUALS_CI(s, x) strcasecmp(s, x) == 0
+#define COMPAT_RESOURCE_PARAM(x) zend_rsrc_list_entry *(x) TSRMLS_DC
+#define COMPAT_ZVAL_STRING(str, len) ZVAL_STRING(str, len, 0)
+#define COMPAT_RETURN_STRING(str) RETURN_STRING(str, 0)
+#define COMPAT_Z_TYPE_PP(x) Z_TYPE_PP(x)
+#define COMPAT_Z_LVAL(x) Z_LVAL(*(x))
+#define COMPAT_Z_STRVAL(x) Z_STRVAL(*(x))
+#define COMPAT_Z_ARRVAL_P(x) Z_ARRVAL_P(*(x))
+#define COMPAT_Z_ADDREF_P(x) Z_ADDREF_P(x)
+#define COMPAT_Z_STRLEN(x) Z_STRLEN(*(x))
+#define COMPAT_Z_STRLEN_P(x) Z_STRLEN_P(x)
+#define COMPAT_Z_STRLEN_PP(x) Z_STRLEN_P(x)
+#define COMPAT_Z_STRVAL_P(x) Z_STRVAL_P(x)
+#define COMPAT_Z_ARREF(x) (x)
+
+#define COMPAT_MAKE_STD_ZVAL(x) MAKE_STD_ZVAL(x)
+#define COMPAT_DECLARE_ZVAL(name) zval *name
+#define COMPAT_ALLOC_INIT_ZVAL(name) ALLOC_INIT_ZVAL(name)
+#define COMPAT_ALLOC_INIT_ZVAL2(name) ALLOC_INIT_ZVAL(name)
+#define hp_ptr_dtor(val) zval_ptr_dtor(&(val))
+
+#else
+#define PHP7 1
+typedef size_t strsize_t;
+#define COMPAT_ZVAL zval
+#define COMPAT_ZVAL_UNDEF(x) ZVAL_UNDEF(&(x))
+#define COMPAT_Z_ISUNDEF(x) Z_ISUNDEF(x)
+#define COMPAT_Z_RESOURCE zend_resource
+#define COMPAT_ZEND_HASH_FOREACH_KEY_VAL(arr_hash, idx, key, data) ZEND_HASH_FOREACH_KEY_VAL(arr_hash, idx, key, data)
+#define COMPAT_ZEND_HASH_FOREACH_END() ZEND_HASH_FOREACH_END()
+#define COMPAT_STR_EQUALS_CI(s, x) zend_string_equals_ci(zend_string_init(ZEND_STRL(s), 0), x)
+#define COMPAT_RESOURCE_PARAM(x) zend_resource *(x)
+#define COMPAT_ZVAL_STRING(str, len) ZVAL_STRING(str, len)
+#define COMPAT_RETURN_STRING(str) RETURN_STRING(str)
+#define COMPAT_Z_TYPE_PP(x) Z_TYPE_P(x)
+#define COMPAT_Z_LVAL(x) Z_LVAL(x)
+#define COMPAT_Z_STRVAL(x) Z_STRVAL(x)
+#define COMPAT_Z_ARRVAL_P(x) Z_ARRVAL_P(x)
+#define COMPAT_Z_ADDREF_P(x)
+#define COMPAT_Z_STRLEN(x) Z_STRLEN(x)
+#define COMPAT_Z_STRLEN_P(x) ZSTR_LEN(x)
+#define COMPAT_Z_STRLEN_PP(x) Z_STRLEN_P(x)
+#define COMPAT_Z_STRVAL_P(x) ZSTR_VAL(x)
+#define COMPAT_Z_ARREF(x) &(x)
+
+#define COMPAT_MAKE_STD_ZVAL(x)
+#define COMPAT_DECLARE_ZVAL(name) zval name ## _v; zval * name = &name ## _v
+#define COMPAT_ALLOC_INIT_ZVAL(name)
+#define COMPAT_ALLOC_INIT_ZVAL2(name) ZVAL_NULL(name)
+#define hp_ptr_dtor(val) zval_ptr_dtor(val)
+
+#endif
+
 // Aho-Corasick import
 #include "ahocorasick.h"
 #include "actypes.h"
@@ -50,7 +120,7 @@ ZEND_END_MODULE_GLOBALS(ahocorasick)
 struct ahocorasick_callback_payload_t {
         // found match will be added here
         int retVal;
-        zval  resultArray;
+        COMPAT_ZVAL resultArray;
 };
 
 /**
@@ -60,14 +130,14 @@ typedef struct ahocorasick_pattern_t {
     char *key;
     long keyId;
     enum ac_pattid_type keyType;
-    zval  zKey;
+    COMPAT_ZVAL zKey;
 
     char *value;
     int valueLen;
-    zval  zVal;
+    COMPAT_ZVAL zVal;
 
     int ignoreCase;
-    zval  auxObj;
+    COMPAT_ZVAL auxObj;
 
     struct ahocorasick_pattern_t * next;
     struct ahocorasick_pattern_t * prev;
