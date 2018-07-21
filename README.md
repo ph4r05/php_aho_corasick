@@ -17,7 +17,7 @@ No extra dependencies are required. [MultiFast] library is wrapped as PHP extens
 
 Source of inspiration for this project was a great [tutorial].
 
-This version is only compatible with php 7.0.0+
+Compatible with PHP 5.3+ and PHP 7.1+.
 
 ## PECL & Licensing
 The original project [MultiFast] is licensed under LGPLv3 so this PHP wrapper is also licensed under LGPLv3.
