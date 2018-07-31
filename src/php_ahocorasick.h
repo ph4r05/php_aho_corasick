@@ -97,8 +97,8 @@ typedef size_t strsize_t;
 #endif
 
 // Aho-Corasick import
-#include "ahocorasick.h"
-#include "actypes.h"
+#include "multifast/ahocorasick.h"
+#include "multifast/actypes.h"
 
 ZEND_BEGIN_MODULE_GLOBALS(ahocorasick)
     long counter;

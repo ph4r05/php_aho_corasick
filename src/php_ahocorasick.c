@@ -36,8 +36,6 @@
 #include "php_variables.h"
 #include "php_globals.h"
 #include "TSRM.h"
-#include "ahocorasick.h"
-#include "actypes.h"
 
 // counter for aho struct resources
 int le_ahocorasick_master;

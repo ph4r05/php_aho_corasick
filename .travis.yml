@@ -49,7 +49,7 @@ addons:
 
 script:
   - ./build.sh
-  - php -d extension=modules/ahocorasick.so -f test.php
+  - php -d extension=modules/ahocorasick.so -f examples/test.php
 
 # optionally set up exclutions and allowed failures in the matrix
 matrix:

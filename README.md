@@ -39,7 +39,7 @@ lowercase (use mb_strtolower() for example).
 
 For more usage examples, see provided testing examples.
 
-test.php:
+`examples/test.php`:
 ```php
 $data = array(
   	array('key'=>'ab', 'value'=>'alfa'),
@@ -65,7 +65,7 @@ var_dump($d1);
 
 Call with:
 ```bash
-php -d extension=modules/ahocorasick.so -f test.php
+php -d extension=modules/ahocorasick.so -f examples/test.php
 ```
 
 Results with:
@@ -133,7 +133,7 @@ array(5) {
 ```
 
 ## Benchmark
-In this repo you can find benchmark.php file, with this you can perform your own benchmark and measure speed up.
+In this repo you can find `examples/benchmark.php` file, with this you can perform your own benchmark and measure speed up.
 
 My setup generates random haystacks and needles from alphabet="abcdef". There is performed 5 measurements of time spent by search and average is computed.
 Search structure construction is conted to time measurements.
@@ -148,7 +148,7 @@ Principle:
 
 Results:
 ```
-$> php -d extension=modules/ahocorasick.so -f benchmark.php
+$> php -d extension=modules/ahocorasick.so -f examples/benchmark.php
 Classic search; sampleCount: 10; keySize: 2048; timeAvg: 13.060877
 AhoCorasick search; sampleCount: 10; keySize: 2048; timeAvg: 0.174326 s, totalTime: 1.743264 s, memory increase: 272 B
 AhoCorasick pattern matching is 74.921962 times faster than naive approach
