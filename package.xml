@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<package packagerversion="1.4.11" version="2.0"
+         xmlns="http://pear.php.net/dtd/package-2.0"
+         xmlns:tasks="http://pear.php.net/dtd/tasks-1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0
+http://pear.php.net/dtd/tasks-1.0.xsd
+http://pear.php.net/dtd/package-2.0
+http://pear.php.net/dtd/package-2.0.xsd">
+    <name>ahocorasick</name>
+    <channel>pecl.php.net</channel>
+    <summary>Effective Aho-Corasick string pattern matching algorithm</summary>
+    <description>PHP extension implementing Aho-Corasick pattern matching algorithm (more on wiki).
+
+        Is especially effective if there is a large database of needles (=strings to be searched, for example virus
+        signatures). Another advantage is that built search structure is initialized before search in separate call thus
+        it can be called more times with different haystack, saving time.
+
+        Computing Aho-Corasick in th native code (PHP extension) rather than in a pure PHP manner gives this
+        implementation significant performance boost.
+    </description>
+    <lead>
+        <name>Dusan Klinec</name>
+        <user>ph4r05sk</user>
+        <email>ph4r05@gmail.com</email>
+        <active>yes</active>
+    </lead>
+    <date>2018-07-31</date>
+    <version>
+        <release>0.0.1</release>
+        <api>0.0.1</api>
+    </version>
+    <stability>
+        <release>beta</release>
+        <api>alpha</api>
+    </stability>
+    <license uri="http://www.php.net/license/">PHP License</license>
+    <notes>
+        Initial release
+    </notes>
+
+    <contents>
+        <dir name="/">
+            <dir name="examples">
+                <file role='doc' name='benchmark.php'/>
+                <file role='doc' name='test.php'/>
+                <file role='doc' name='test2.php'/>
+                <file role='doc' name='test3.php'/>
+            </dir>
+            <file role='doc' name='README.md'/>
+            <file role='doc' name='CREDITS'/>
+            <file role='doc' name='LICENSE'/>
+            <file role='doc' name='LICENSE-PECL'/>
+            <file role='src' name='config.m4'/>
+            <file role='src' name='src/php_ahocorasick.h'/>
+            <file role='src' name='src/php_ahocorasick.c'/>
+            <file role='src' name='src/multifast/acmem.h'/>
+            <file role='src' name='src/multifast/actypes.h'/>
+            <file role='src' name='src/multifast/ahocorasick.h'/>
+            <file role='src' name='src/multifast/ahocorasick.c'/>
+            <file role='src' name='src/multifast/mpool.h'/>
+            <file role='src' name='src/multifast/mpool.c'/>
+            <file role='src' name='src/multifast/node.h'/>
+            <file role='src' name='src/multifast/node.c'/>
+            <file role='src' name='src/multifast/replace.h'/>
+            <file role='src' name='src/multifast/replace.c'/>
+        </dir> <!-- / -->
+    </contents>
+    <dependencies>
+        <required>
+            <php>
+                <min>5.2.0</min>
+                <max>7.3.99</max>
+            </php>
+            <pearinstaller>
+                <min>1.4.0b1</min>
+            </pearinstaller>
+        </required>
+    </dependencies>
+    <providesextension>ahocorasick</providesextension>
+    <extsrcrelease/>
+    <changelog>
+    </changelog>
+</package>
