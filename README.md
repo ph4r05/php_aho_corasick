@@ -24,6 +24,8 @@ The original project [MultiFast] is licensed under LGPLv3 so this PHP wrapper is
 Thanks to the [author] of the [MultiFast], Kamiar Kanani, who gave me a [permission] to license the code under PHP License 3.01 for the purpose
 of adding this extension to PECL repository. 
 
+https://pecl.php.net/package/ahocorasick
+
 Pecl installation:
 
 ```bash
