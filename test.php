@@ -18,3 +18,12 @@ $d1 = ahocorasick_match("alFABETA gamma zetaomegaalfa!", $c);
 ahocorasick_deinit($c);
 
 var_dump($d1);
+
+if (count($d1) != 5){
+ throw new Exception("Expected 5 results");
+}
+
+$ex = ["pos"=>28, "start_postion"=>25, "value"=>"lfa"];
+if ($d1[4] != $ex){
+ throw new Exception("Expected");
+}
