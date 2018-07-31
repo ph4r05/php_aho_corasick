@@ -145,6 +145,7 @@ Principle:
 
 Results:
 ```
+$> php -d extension=modules/ahocorasick.so -f benchmark.php
 Classic search; sampleCount: 10; keySize: 2048; timeAvg: 13.060877
 AhoCorasick search; sampleCount: 10; keySize: 2048; timeAvg: 0.174326 s, totalTime: 1.743264 s, memory increase: 272 B
 AhoCorasick pattern matching is 74.921962 times faster than naive approach
