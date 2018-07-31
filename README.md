@@ -24,7 +24,13 @@ The original project [MultiFast] is licensed under LGPLv3 so this PHP wrapper is
 Thanks to the [author] of the [MultiFast], Kamiar Kanani, who gave me a [permission] to license the code under PHP License 3.01 for the purpose
 of adding this extension to PECL repository. 
 
-At the moment the PECL approval is in the progress. Stay tuned.
+Pecl installation:
+
+```bash
+pecl install channel://pecl.php.net/ahocorasick-0.0.1
+```
+
+Note the `php-dev` (or `php-devel`, depends on your distribution) is required for pecl package to compile.
 
 ## Build
 ```bash
@@ -189,6 +195,13 @@ array('id'=>0, 'value'=>'zeta')
 ```php
 array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1))
 ``` 
+
+### Development
+
+```
+# Create package for distribution
+pear package
+```
 
 Donating
 ========
