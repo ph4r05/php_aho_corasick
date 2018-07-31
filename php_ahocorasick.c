@@ -164,7 +164,6 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
     int returnCode = 0;
     unsigned long allKeys = 0;
     COMPAT_ZVAL *data_sub;
-    HashPosition pointer_sub;
     zend_long num_key;
     zend_string *key;
 
@@ -175,7 +174,7 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
 #if !PHP7
         unsigned int key_len;
         unsigned long index;
-        if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer_sub) != HASH_KEY_IS_STRING) {
+        if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer) != HASH_KEY_IS_STRING) {
             php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure (bad sub-array key)! Cannot initialize.");
             returnCode = -1;
             break;
