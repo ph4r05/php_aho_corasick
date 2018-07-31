@@ -30,4 +30,9 @@ config.log
 nbproject
 
 cmake-build*
+modules/
+.libs
+.deps
+
+
 
