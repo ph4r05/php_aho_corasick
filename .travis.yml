@@ -47,7 +47,9 @@ addons:
     build_command:   ./build.sh
     branch_pattern: coverity_scan
 
-script: ./build.sh
+script:
+  - ./build.sh
+  - php -d extension=modules/ahocorasick.so -f test.php
 
 # optionally set up exclutions and allowed failures in the matrix
 matrix:
