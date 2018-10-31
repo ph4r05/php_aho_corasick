@@ -205,6 +205,13 @@ array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1))
 pear package
 ```
 
+# OSX Mojave
+
+Since Mojave the PHP module needs to be codesigned in order to be loaded to the process.
+
+https://developer.apple.com/library/archive/technotes/tn2206/_index.html
+
+
 Donating
 ========
 
