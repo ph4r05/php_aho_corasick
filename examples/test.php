@@ -27,3 +27,20 @@ $ex = ["pos"=>28, "start_postion"=>25, "value"=>"lfa"];
 if ($d1[4] != $ex){
  throw new Exception("Expected");
 }
+
+// UTF8 check
+$check_word=[
+    ['你好'],['hi'],
+    ['谢谢'],['thanks']
+];
+
+$text = "你好，hi，谢谢，thanks";
+
+$c = ahocorasick_init($check_word);
+
+$res = ahocorasick_match($text, $c);
+var_dump($res);
+
+ahocorasick_deinit($c);
+
+echo "OK\n";
