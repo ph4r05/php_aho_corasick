@@ -5,3 +5,5 @@ modules/
 tmp/
 autom4*
 cmake-*
+cov/
+cov-int/

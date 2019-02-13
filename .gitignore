@@ -33,6 +33,26 @@ cmake-build*
 modules/
 .libs
 .deps
+cov/
+cov-int/
+
+aclocal.m4
+acinclude.m4
+CMakeLists.txt
+config.guess
+config.h
+config.h.in
+config.status
+config.sub
+configure
+configure.ac
+install-sh
+libtool
+ltmain.sh
+Makefile*
+missing
+mkinstalldirs
+
 
 
 
