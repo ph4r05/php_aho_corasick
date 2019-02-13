@@ -40,7 +40,8 @@ RUN set -ex && \
        apt-get --no-install-recommends --yes install \
           gdb \
           gdbserver \
-          valgrind; \
+          valgrind \
+          vim; \
        fi \
     && rm -rf /var/lib/apt/lists/*
 
@@ -56,7 +57,12 @@ ARG DIR_BUSTER=0
 
 # php_aho_corasick
 COPY config* $PROJECT_DIR/
+COPY build.sh $PROJECT_DIR/
 COPY src/ $PROJECT_DIR/src/
+
+COPY docker/*.sh /usr/local/bin/
+RUN set -ex \
+    && chmod +x /usr/local/bin/*.sh
 
 WORKDIR $PROJECT_DIR
 RUN set -ex \
