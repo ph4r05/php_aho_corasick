@@ -25,9 +25,9 @@ http://pear.php.net/dtd/package-2.0.xsd">
         <email>ph4r05@gmail.com</email>
         <active>yes</active>
     </lead>
-    <date>2018-07-31</date>
+    <date>2019-02-13</date>
     <version>
-        <release>0.0.1</release>
+        <release>0.0.2</release>
         <api>0.0.1</api>
     </version>
     <stability>
@@ -46,11 +46,13 @@ http://pear.php.net/dtd/package-2.0.xsd">
                 <file role='doc' name='test.php'/>
                 <file role='doc' name='test2.php'/>
                 <file role='doc' name='test3.php'/>
+                <file role='doc' name='test4.php'/>
             </dir>
             <file role='doc' name='README.md'/>
             <file role='doc' name='CREDITS'/>
             <file role='doc' name='LICENSE'/>
             <file role='doc' name='LICENSE-PECL'/>
+            <file role='src' name='build.sh'/>
             <file role='src' name='config.m4'/>
             <file role='src' name='src/php_ahocorasick.h'/>
             <file role='src' name='src/php_ahocorasick.c'/>
