@@ -1,0 +1,7 @@
+archive/
+.idea/
+.git/
+modules/
+tmp/
+autom4*
+cmake-*

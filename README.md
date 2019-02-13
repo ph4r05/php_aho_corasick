@@ -41,6 +41,27 @@ phpize
 make
 ```
 
+## Docker build
+
+```bash
+$ docker build -t="ahoc" .
+$ docker run -i -t ahoc
+$ php -d extension=modules/ahocorasick.so -f examples/test.php
+```
+
+Install debugging tools, remote debugging
+
+```bash
+$ docker build -t="ahoc" --build-arg DEVEL_TOOLS=1 .
+$ docker run -i --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -t ahoc
+```
+
+Recompiling, or cache busting:
+
+```bash
+$ docker build -t="ahoc" --build-arg DIR_BUSTER=`date`.
+```
+
 ## Usage
 This extension is case sensitive, thus if you want case insensitive, convert every string input to this algorithm to 
 lowercase (use mb_strtolower() for example).
@@ -198,14 +219,14 @@ array('id'=>0, 'value'=>'zeta')
 array('key'=>'ad', 'value'=>'gamma', 'aux'=>array(1))
 ``` 
 
-### Development
+## Development
 
 ```
 # Create package for distribution
 pear package
 ```
 
-# OSX Mojave
+### OSX Mojave
 
 Since Mojave the PHP module needs to be codesigned in order to be loaded to the process.
 
