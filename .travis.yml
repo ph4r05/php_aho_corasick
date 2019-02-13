@@ -24,7 +24,6 @@ addons:
     - autoconf
     - cmake
     - time
-    - php7.2-dev
   coverity_scan:
     project:
       name: "ph4r05/php_aho_corasick"
