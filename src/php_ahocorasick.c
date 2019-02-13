@@ -24,6 +24,9 @@
  * Sources:
  *  http://www.phpinternalsbook.com/zvals/memory_management.html
  *  http://docstore.mik.ua/orelly/webprog/php/ch14_06.htm
+ *
+ *  https://wiki.php.net/phpng-upgrading
+ *  https://phpinternals.net/docs/zval_copy
  */
 
 #ifdef HAVE_CONFIG_H
@@ -233,15 +236,14 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
             char * stmp = NULL;
             // Avoid string copy, use reference counting.
             stmp = COMPAT_Z_STRVAL(*data_sub);
-            COMPAT_Z_ADDREF_P(*data_sub);
             if (keyFound == 0x1){
                 // key
-                tmpStruct->zKey = *data_sub;
+                COMPAT_ZVAL_COPY(&(tmpStruct->zKey), data_sub);
                 tmpStruct->key = stmp;
                 tmpStruct->keyType = AC_PATTID_TYPE_STRING;
             } else if (keyFound == 0x2){
                 // value
-                tmpStruct->zVal = *data_sub;
+                COMPAT_ZVAL_COPY(&(tmpStruct->zVal), data_sub);
                 tmpStruct->value = stmp;
                 tmpStruct->valueLen = COMPAT_Z_STRLEN(*data_sub);
             }
@@ -498,14 +500,14 @@ static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
 
     for (j = 0; j < m->size; j++) {
         // dump found matches to result array
+        ahocorasick_pattern_t * curPattern = (ahocorasick_pattern_t *) m->patterns[j].aux;
+        if (curPattern == NULL){
+          continue;
+        }
+
         COMPAT_ALLOC_INIT_ZVAL(mysubarray);
         array_init(COMPAT_Z_ARREF(mysubarray));
         add_assoc_long(COMPAT_Z_ARREF(mysubarray), "pos", m->position);
-
-        ahocorasick_pattern_t * curPattern = (ahocorasick_pattern_t *) m->patterns[j].aux;
-        if (curPattern == NULL){
-            continue;
-        }
 
         if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
             add_assoc_zval(COMPAT_Z_ARREF(mysubarray), "key", COMPAT_Z_ARREF(curPattern->zKey));
@@ -523,8 +525,16 @@ static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
 
         add_assoc_long(COMPAT_Z_ARREF(mysubarray), "start_postion", (m->position - COMPAT_Z_STRLEN_PP(COMPAT_Z_ARREF(curPattern->zVal))));
 
+
+#if PHP7
+        COMPAT_ZVAL tmp_key;
+        ZVAL_COPY(&tmp_key, COMPAT_Z_ARREF(curPattern->zVal));
+        add_assoc_zval(COMPAT_Z_ARREF(mysubarray), "value", &tmp_key);
+#else
+        // PHP7 - this causes a segfault.
         add_assoc_zval(COMPAT_Z_ARREF(mysubarray), "value", COMPAT_Z_ARREF(curPattern->zVal));
         COMPAT_Z_ADDREF_P(curPattern->zVal);
+#endif
 
         // add to aggregate array
         add_next_index_zval(COMPAT_Z_ARREF(myp->resultArray), COMPAT_Z_ARREF(mysubarray));
