@@ -62,7 +62,10 @@ typedef int strsize_t;
 #define COMPAT_DECLARE_ZVAL(name) zval *name
 #define COMPAT_ALLOC_INIT_ZVAL(name) ALLOC_INIT_ZVAL(name)
 #define COMPAT_ALLOC_INIT_ZVAL2(name) ALLOC_INIT_ZVAL(name)
-#define COMPAT_ZVAL_COPY(z, v) ZVAL_COPY(z, v)
+#define COMPAT_ZVAL_COPY(z, v) do { \
+  Z_ADDREF_P(*(v));                 \
+  *z = *v;                          \
+} while(0)
 #define hp_ptr_dtor(val) zval_ptr_dtor(&(val))
 
 #else
