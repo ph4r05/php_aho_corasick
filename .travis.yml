@@ -6,21 +6,7 @@ sudo: false
 
 # list any PHP version you want to test against
 php:
-  # using major version aliases
-  # aliased to a recent 5.4.x version
-  - 5.4
-  # aliased to a recent 5.5.x version
-  - 5.5
-  # aliased to a recent 5.6.x version
-  - 5.6
-  # aliased to a recent 7.0.x version
-  - 7.0
-  # aliased to a recent 7.1.x version
-  - 7.1
-  # aliased to a recent 7.2.x version
   - 7.2
-  # aliased to a recent hhvm version
-  - hhvm
 
 #Coverity
 env:
@@ -53,8 +39,3 @@ script:
   - php -d extension=modules/ahocorasick.so -f examples/test2.php
   - php -d extension=modules/ahocorasick.so -f examples/test3.php
   - php -d extension=modules/ahocorasick.so -f examples/test4.php
-
-# optionally set up exclutions and allowed failures in the matrix
-matrix:
-  allow_failures:
-    - php: hhvm
