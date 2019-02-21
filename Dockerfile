@@ -36,7 +36,7 @@ RUN set -ex && \
         rsync \
         unzip \
         wget \
-    && if [ "${DEVEL_TOOLS}" -eq "1" ] ; then \
+    && if [ "${DEVEL_TOOLS}" -eq 1 ] ; then \
        apt-get --no-install-recommends --yes install \
           gdb \
           gdbserver \
