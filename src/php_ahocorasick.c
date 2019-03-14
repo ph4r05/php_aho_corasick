@@ -211,7 +211,7 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
         if (returnCode != 0 || has_exception){
             break;
         }
-#if !PHP7 && 0
+#if !PHP7
         unsigned int key_len;
         unsigned long index;
         if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer) != HASH_KEY_IS_STRING) {
