@@ -211,21 +211,16 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
         if (returnCode != 0 || has_exception){
             break;
         }
-#if !PHP7
+#if !PHP7 && 0
         unsigned int key_len;
         unsigned long index;
         if (zend_hash_get_current_key_ex(arr_hash_sub, &key, &key_len, &index, 0, &pointer) != HASH_KEY_IS_STRING) {
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure (bad sub-array key)! Cannot initialize.");
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure (bad sub-array key)! Cannot initialize."
+                                                        "Pattern idx: %ld", (long)pidx);
             returnCode = -1;
             break;
         }
 #endif
-
-//        if (!key) {
-//            php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid structure (bad sub-array key)! Cannot initialize.");
-//            returnCode = -1;
-//            break;
-//        }
 
         // determine known keys
         if (!key){
@@ -649,7 +644,7 @@ PHP_FUNCTION(ahocorasick_isValid)
     ZEND_PARSE_PARAMETERS_END();
     
     // fetch resource passed as parameter
-    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid) ,  PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
+    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid), PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
 
 #else
     zval *zval_aho_master = NULL;

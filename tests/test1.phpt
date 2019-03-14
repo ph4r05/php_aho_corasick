@@ -35,8 +35,10 @@ if ($d1[4] != $ex){
 
 // UTF8 check
 $check_word=[
-    ['你好'],['hi'],
-    ['谢谢'],['thanks']
+    ['value'=>'你好'],
+    ['value'=>'hi'],
+    ['value'=>'谢谢'],
+    ['value'=>'thanks']
 ];
 
 $text = "你好，hi，谢谢，thanks";
