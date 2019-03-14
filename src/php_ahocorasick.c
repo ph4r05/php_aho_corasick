@@ -27,6 +27,8 @@
  *
  *  https://wiki.php.net/phpng-upgrading
  *  https://phpinternals.net/docs/zval_copy
+ *  https://nikic.github.io/2015/05/05/Internal-value-representation-in-PHP-7-part-1.html
+ *  https://nikic.github.io/2015/06/19/Internal-value-representation-in-PHP-7-part-2.html
  */
 
 #ifdef HAVE_CONFIG_H
@@ -39,9 +41,15 @@
 #include "php_variables.h"
 #include "php_globals.h"
 #include "TSRM.h"
+#include "zend_exceptions.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 // counter for aho struct resources
 int le_ahocorasick_master;
+static zend_class_entry *aho_exception_ce;
+static char exception_buffer[8192];
+
 
 ZEND_DECLARE_MODULE_GLOBALS(ahocorasick)
 
@@ -79,8 +87,33 @@ zend_module_entry ahocorasick_module_entry = {
 //PHP_INI_BEGIN()
     //PHP_INI_ENTRY("ahocorasick.greeting", "Hello World", PHP_INI_ALL, NULL)
     //STD_PHP_INI_ENTRY("helloahocorasick.direction", "1", PHP_INI_ALL, OnUpdateBool, direction, zend_ahocorasick_globals, ahocorasick_globals)
-//PHP_INI_END()    
-    
+//PHP_INI_END()
+
+static zend_object *aho_exception_create_object(zend_class_entry *ce) {
+    zend_object *obj = zend_ce_exception->create_object(ce);
+    return obj;
+}
+
+static char * php_aho_type_str(int tp){
+    static char typebuff[128];
+    switch(tp){
+#if PHP7
+      case IS_UNDEF: return "undef";
+      case IS_NULL: return "null";
+      case IS_FALSE: return "false";
+      case IS_TRUE: return "true";
+      case IS_LONG: return "long";
+      case IS_DOUBLE: return "double";
+      case IS_STRING: return "string";
+      case IS_ARRAY: return "array";
+      case IS_OBJECT: return "object";
+      case IS_RESOURCE: return "resource";
+      case IS_REFERENCE: return "reference";
+#endif
+      default: sprintf(typebuff, "%d", tp); return typebuff;
+    }
+}
+
 /**
  * register some global variables here
  * @param ahocorasick_globals
@@ -158,7 +191,7 @@ static inline int php_ahocorasick_dealloc_pattern(ahocorasick_pattern_t * tmpStr
 /**
  * Reads single pattern definition, construct ahocorasick_pattern_t representation of pattern.
  */
-static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStruct, HashTable * arr_hash_sub TSRMLS_DC) {
+static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pattern_t * tmpStruct, HashTable * arr_hash_sub TSRMLS_DC) {
     php_ahocorasick_reset_pattern(tmpStruct);
 
     // iterate over sub array
@@ -167,11 +200,19 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
     COMPAT_ZVAL *data_sub;
     zend_long num_key;
     zend_string *key;
+    zend_bool has_exception = 0;
+
+#define PATTERN_EXCEPTION() do{  \
+    has_exception=1;   \
+    returnCode=-5;     \
+} while(0); break
 
     COMPAT_ZEND_HASH_FOREACH_KEY_VAL(arr_hash_sub, num_key, key, data_sub)
     {
         unsigned long keyFound = 0;
-
+        if (returnCode != 0 || has_exception){
+            break;
+        }
 #if !PHP7
         unsigned int key_len;
         unsigned long index;
@@ -204,7 +245,8 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
         } else {
             php_error_docref(NULL TSRMLS_CC, E_WARNING,
                     "Invalid structure (unrecognized sub-array key: [%s])! "
-                            "Only allowed are: {key, id, value, aux, ignoreCase}. Cannot initialize.", key);
+                    "Only allowed are: {key, id, value, aux, ignoreCase}. Cannot initialize. "
+                    "Pattern index: %ld", key, (long)pidx);
             returnCode = -2;
             break;
         }
@@ -212,6 +254,11 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
 
         // Numeric identifier
         if ((keyFound & 0x8) > 0){
+            if (COMPAT_Z_TYPE_P(*data_sub) != IS_LONG){
+                sprintf(exception_buffer, "Invalid type of pattern ID given (long required), type: %s, pattern index: %ld", php_aho_type_str(COMPAT_Z_TYPE_P(*data_sub)), (long)pidx);
+                PATTERN_EXCEPTION();
+            }
+
             long keyId = COMPAT_Z_LVAL(*data_sub);
             tmpStruct->keyId = keyId;
             tmpStruct->keyType = AC_PATTID_TYPE_NUMBER;
@@ -226,14 +273,21 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
 
         // ignoreCase - deprecated.
         if ((keyFound & 0x4) > 0){
-            // convert to boolean
-            //int tmpBool = Z_BVAL(*data_sub);
             tmpStruct->ignoreCase = 0;
         }
 
         // key/value present -> process
         if ((keyFound & 0x3) > 0){
             char * stmp = NULL;
+
+            if (COMPAT_Z_TYPE_P(*data_sub) != IS_STRING){
+                sprintf(exception_buffer, "Pattern %s has to be a string, type: %s, pattern index: %ld",
+                    keyFound == 0x1 ? "key" : "value",
+                    php_aho_type_str(COMPAT_Z_TYPE_P(*data_sub)),
+                    (long)pidx);
+                PATTERN_EXCEPTION();
+            }
+
             // Avoid string copy, use reference counting.
             stmp = COMPAT_Z_STRVAL(*data_sub);
             if (keyFound == 0x1){
@@ -252,19 +306,19 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
 
     // sanity check, if failed, return false
     if (returnCode == 0 && tmpStruct->value==NULL){
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified for pattern!");
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "No value was specified for pattern index: %ld", (long)pidx);
         returnCode = -2;
     }
 
     // numeric key and string identifier are mutually exclusive
     if (returnCode == 0 && (allKeys & 0x1) && (allKeys & 0x8)){
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both!");
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pattern can have either numeric or string identifier, not both! Pattern index: %ld", (long)pidx);
         returnCode = -3;
     }
 
     // Deprecate ignoreCase option
     if (allKeys & 0x4){
-        php_error_docref(NULL TSRMLS_CC, E_WARNING, "ignoreCase attribute is deprecated and is ignored");
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "ignoreCase attribute is deprecated and is ignored. Pattern index: %ld", (long)pidx);
     }
 
     // If everything went well, we can return successfully.
@@ -274,7 +328,11 @@ static inline int php_ahocorasick_process_pattern(ahocorasick_pattern_t * tmpStr
 
     // Otherwise deallocate this entry.
     php_ahocorasick_dealloc_pattern(tmpStruct);
+    if (has_exception) {
+        zend_throw_exception(aho_exception_ce, exception_buffer, 0 TSRMLS_CC);
+    }
     return returnCode;
+#undef PATTERN_EXCEPTION
 }
 
 /**
@@ -367,7 +425,7 @@ static inline int php_ahocorasick_process_patterns(ahocorasick_master_t * master
 
         // iterate over sub array
         HashTable *arr_hash_sub = COMPAT_Z_ARRVAL_P(data);
-        int status_code = php_ahocorasick_process_pattern(tmpStruct, arr_hash_sub TSRMLS_CC);
+        int status_code = php_ahocorasick_process_pattern(curIdx, tmpStruct, arr_hash_sub TSRMLS_CC);
         if (status_code != 0){
             pattern_processing_status = -1;
             break;
@@ -554,7 +612,12 @@ PHP_MINIT_FUNCTION(ahocorasick)
 {
     // destruction of ahocorasick_pattern_t master
     le_ahocorasick_master = zend_register_list_destructors_ex(php_ahocorasick_pattern_t_master_dtor, NULL, PHP_AHOSTRUCT_MASTER_RES_NAME, module_number);
-    
+
+    zend_class_entry ce;
+    INIT_CLASS_ENTRY(ce, "AhoException", NULL);
+    aho_exception_ce = zend_register_internal_class_ex(&ce, zend_ce_exception);
+    aho_exception_ce->create_object = aho_exception_create_object;
+
     //ZEND_INIT_MODULE_GLOBALS(ahocorasick, php_ahocorasick_init_globals, NULL);
     //REGISTER_INI_ENTRIES();
     return SUCCESS;

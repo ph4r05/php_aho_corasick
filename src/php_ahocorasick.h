@@ -26,6 +26,10 @@
 #include "TSRM.h"
 #endif
 
+#ifndef PHP_MAJOR_VERSION
+#define PHP_MAJOR_VERSION 7
+#endif
+
 // Compatibility
 #if PHP_MAJOR_VERSION < 7
 #define PHP7 0
@@ -48,6 +52,7 @@ typedef int strsize_t;
 #define COMPAT_ZVAL_STRING(str, len) ZVAL_STRING(str, len, 0)
 #define COMPAT_RETURN_STRING(str) RETURN_STRING(str, 0)
 #define COMPAT_Z_TYPE_PP(x) Z_TYPE_PP(x)
+#define COMPAT_Z_TYPE_P(x) Z_TYPE_P(x)
 #define COMPAT_Z_LVAL(x) Z_LVAL(*(x))
 #define COMPAT_Z_STRVAL(x) Z_STRVAL(*(x))
 #define COMPAT_Z_ARRVAL_P(x) Z_ARRVAL_P(*(x))
@@ -82,6 +87,7 @@ typedef size_t strsize_t;
 #define COMPAT_ZVAL_STRING(str, len) ZVAL_STRING(str, len)
 #define COMPAT_RETURN_STRING(str) RETURN_STRING(str)
 #define COMPAT_Z_TYPE_PP(x) Z_TYPE_P(x)
+#define COMPAT_Z_TYPE_P(x) Z_TYPE(x)
 #define COMPAT_Z_LVAL(x) Z_LVAL(x)
 #define COMPAT_Z_STRVAL(x) Z_STRVAL(x)
 #define COMPAT_Z_ARRVAL_P(x) Z_ARRVAL_P(x)
