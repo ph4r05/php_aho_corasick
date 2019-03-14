@@ -330,7 +330,7 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
 #if PHP7
         zend_throw_exception(aho_exception_ce, exception_buffer, 0 TSRMLS_CC);
 #else
-        php_error_docref(NULL TSRMLS_CC, E_ERROR, exception_buffer);
+        php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", exception_buffer);
 #endif
     }
     return returnCode;
