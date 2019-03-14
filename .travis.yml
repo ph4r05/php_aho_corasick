@@ -48,11 +48,7 @@ addons:
 
 script:
   - ./build.sh
-  - php -d extension=modules/ahocorasick.so -f examples/test.php
-  - php -d extension=modules/ahocorasick.so -f examples/test2.php
-  - php -d extension=modules/ahocorasick.so -f examples/test3.php
-  - php -d extension=modules/ahocorasick.so -f examples/test4.php
-  - php -d extension=modules/ahocorasick.so -f examples/test5.php
+  - make test
 
 # optionally set up exclutions and allowed failures in the matrix
 matrix:
