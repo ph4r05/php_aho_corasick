@@ -30,6 +30,7 @@
  *  https://nikic.github.io/2015/05/05/Internal-value-representation-in-PHP-7-part-1.html
  *  https://nikic.github.io/2015/06/19/Internal-value-representation-in-PHP-7-part-2.html
  *  https://github.com/php/php-src/blob/c8efaea1e3f93b5b836a38c6985b67983b1dc95a/Zend/zend_types.h#L364
+ *  https://github.com/php/php-src/blob/master/Zend/zend_types.h
  *  https://github.com/copentop/php-7.2.5/blob/924c4cd50b01efebbb93438392c9e1916a568f02/php-7.2.5/ext/sodium/libsodium.c
  */
 
@@ -642,7 +643,11 @@ PHP_FUNCTION(ahocorasick_isValid)
     ZEND_PARSE_PARAMETERS_START(1,1)
     Z_PARAM_RESOURCE(zid)
     ZEND_PARSE_PARAMETERS_END();
-    
+
+    if (Z_RES_TYPE_P(zid) != le_ahocorasick_master){
+      RETURN_FALSE;
+    }
+
     // fetch resource passed as parameter
     ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid), PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
 
@@ -653,7 +658,7 @@ PHP_FUNCTION(ahocorasick_isValid)
     }
     
     // fetch resource passed as parameter
-    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, PHP_AHOSTRUCT_MASTER_RES_NAME);
+    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(&zval_aho_master TSRMLS_CC, -1, NULL, NULL, 1, le_ahocorasick_master);
 #endif
 
     if (ahoMaster==NULL || ahoMaster->init_ok != 1){
@@ -764,7 +769,11 @@ PHP_FUNCTION(ahocorasick_deinit)
      		Z_PARAM_RESOURCE(zid)
     ZEND_PARSE_PARAMETERS_END();
 
-    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid) ,  PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
+    if (Z_RES_TYPE_P(zid) != le_ahocorasick_master){
+      RETURN_FALSE;
+    }
+
+    ahoMaster = (ahocorasick_master_t*) zend_fetch_resource(Z_RES_P(zid), PHP_AHOSTRUCT_MASTER_RES_NAME, le_ahocorasick_master);
 #else
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zval_aho_master) == FAILURE) {
@@ -776,10 +785,13 @@ PHP_FUNCTION(ahocorasick_deinit)
     if(ahoMaster==NULL){
         RETURN_FALSE;
     }
-    
-    // delete now
+
     php_ahocorasick_finalize(ahoMaster);
-#if !PHP7
+    ahoMaster->init_ok = 0;
+
+#if PHP7
+    zend_list_close(Z_RES_P(zid));
+#else
     zend_list_delete(Z_LVAL_P(zval_aho_master));
 #endif
     RETURN_TRUE;

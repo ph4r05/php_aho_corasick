@@ -4,7 +4,6 @@ Test 2
 <?php if (!extension_loaded("ahocorasick")) print "skip"; ?>
 --FILE--
 <?php
-echo "Going to init: \n";
 $aux1 = array(array("helloAuxObject", 41));
 $aux2 = 0x42;
 $aux3 = "simple-aux";
@@ -65,7 +64,6 @@ if ($c){
 ?>
 --EXPECT--
 
-Going to init:
 AhoCorasick match for ahocorasick_match("alFABETA gammadelta delta delta simple pie! aux ssščř+ééžž ččř é é-é éeéee éé aux2 aux3 aux2", c): array(16) {
   [0]=>
   array(5) {
@@ -292,5 +290,5 @@ AhoCorasick match for ahocorasick_match("alFABETAABECEDAAAA!", c, true): array(0
 }
 AhoCorasick isValid(c): bool(true)
 AhoCorasick deinit(c): bool(true)
-AhoCorasick isValid(c): bool(true)
-AhoCorasick deinit(c): bool(true)
+AhoCorasick isValid(c): bool(false)
+AhoCorasick deinit(c): bool(false)
