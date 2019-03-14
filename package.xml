@@ -43,11 +43,13 @@ http://pear.php.net/dtd/package-2.0.xsd">
         <dir name="/">
             <dir name="examples">
                 <file role='doc' name='benchmark.php'/>
-                <file role='doc' name='test.php'/>
-                <file role='doc' name='test2.php'/>
-                <file role='doc' name='test3.php'/>
-                <file role='doc' name='test4.php'/>
-                <file role='doc' name='test5.php'/>
+            </dir>
+            <dir name="tests">
+                <file role='test' name='test1.phpt'/>
+                <file role='test' name='test2.phpt'/>
+                <file role='test' name='test3.phpt'/>
+                <file role='test' name='test4.phpt'/>
+                <file role='test' name='test5.phpt'/>
             </dir>
             <file role='doc' name='README.md'/>
             <file role='doc' name='CREDITS'/>
