@@ -29,6 +29,8 @@
  *  https://phpinternals.net/docs/zval_copy
  *  https://nikic.github.io/2015/05/05/Internal-value-representation-in-PHP-7-part-1.html
  *  https://nikic.github.io/2015/06/19/Internal-value-representation-in-PHP-7-part-2.html
+ *  https://github.com/php/php-src/blob/c8efaea1e3f93b5b836a38c6985b67983b1dc95a/Zend/zend_types.h#L364
+ *  https://github.com/copentop/php-7.2.5/blob/924c4cd50b01efebbb93438392c9e1916a568f02/php-7.2.5/ext/sodium/libsodium.c
  */
 
 #ifdef HAVE_CONFIG_H
@@ -89,10 +91,6 @@ zend_module_entry ahocorasick_module_entry = {
     //STD_PHP_INI_ENTRY("helloahocorasick.direction", "1", PHP_INI_ALL, OnUpdateBool, direction, zend_ahocorasick_globals, ahocorasick_globals)
 //PHP_INI_END()
 
-static zend_object *aho_exception_create_object(zend_class_entry *ce) {
-    zend_object *obj = zend_ce_exception->create_object(ce);
-    return obj;
-}
 
 static char * php_aho_type_str(int tp){
     static char typebuff[128];
@@ -329,7 +327,11 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
     // Otherwise deallocate this entry.
     php_ahocorasick_dealloc_pattern(tmpStruct);
     if (has_exception) {
+#if PHP7
         zend_throw_exception(aho_exception_ce, exception_buffer, 0 TSRMLS_CC);
+#else
+        php_error_docref(NULL TSRMLS_CC, E_ERROR, exception_buffer);
+#endif
     }
     return returnCode;
 #undef PATTERN_EXCEPTION
@@ -613,10 +615,11 @@ PHP_MINIT_FUNCTION(ahocorasick)
     // destruction of ahocorasick_pattern_t master
     le_ahocorasick_master = zend_register_list_destructors_ex(php_ahocorasick_pattern_t_master_dtor, NULL, PHP_AHOSTRUCT_MASTER_RES_NAME, module_number);
 
+#if PHP7
     zend_class_entry ce;
     INIT_CLASS_ENTRY(ce, "AhoException", NULL);
     aho_exception_ce = zend_register_internal_class_ex(&ce, zend_ce_exception);
-    aho_exception_ce->create_object = aho_exception_create_object;
+#endif
 
     //ZEND_INIT_MODULE_GLOBALS(ahocorasick, php_ahocorasick_init_globals, NULL);
     //REGISTER_INI_ENTRIES();
