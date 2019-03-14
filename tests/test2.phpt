@@ -28,8 +28,6 @@ $data = array(
 
 $c = ahocorasick_init($data);
 $data = array(); // Memoty test.
-echo "AhoCorasick struct: ";
-var_dump($c);
 
 $str = "alFABETA gammadelta delta delta simple pie! aux ssščř+ééžž ččř é é-é éeéee éé aux2 aux3 aux2";
 $d = ahocorasick_match($str, $c);
@@ -57,9 +55,6 @@ var_dump(ahocorasick_isValid($c));
 echo "AhoCorasick deinit(c): ";
 var_dump(ahocorasick_deinit($c));
 
-echo "AhoCorasick struct: ";
-var_dump($c);
-
 if ($c){
 	echo "AhoCorasick isValid(c): ";
 	var_dump(ahocorasick_isValid($c));
@@ -70,8 +65,7 @@ if ($c){
 ?>
 --EXPECT--
 
-Going to init: 
-AhoCorasick struct: resource(4) of type (AhoCorasick search)
+Going to init:
 AhoCorasick match for ahocorasick_match("alFABETA gammadelta delta delta simple pie! aux ssščř+ééžž ččř é é-é éeéee éé aux2 aux3 aux2", c): array(16) {
   [0]=>
   array(5) {
@@ -298,6 +292,5 @@ AhoCorasick match for ahocorasick_match("alFABETAABECEDAAAA!", c, true): array(0
 }
 AhoCorasick isValid(c): bool(true)
 AhoCorasick deinit(c): bool(true)
-AhoCorasick struct: resource(4) of type (AhoCorasick search)
 AhoCorasick isValid(c): bool(true)
 AhoCorasick deinit(c): bool(true)

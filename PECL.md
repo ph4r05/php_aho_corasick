@@ -21,3 +21,14 @@ pear package
 
 # Upload here: https://pecl.php.net/release-upload.php
 ```
+
+
+## Debugging
+
+Installing pyenv in the Docker
+
+```
+. docker/install_penv.sh
+
+NO_INTERACTION=1 REPORT_EXIT_STATUS=1 make test TESTS="--show-diff"
+```
