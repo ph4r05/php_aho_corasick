@@ -1,3 +1,8 @@
+--TEST--
+Test 5
+--SKIPIF--
+<?php if (!extension_loaded("ahocorasick")) print "skip"; ?>
+--FILE--
 <?php
 
 $data = [
@@ -28,3 +33,21 @@ foreach ($list as $keyword) {
     var_dump($keyword);
     $matchedAddressList = ahocorasick_match($keyword, $c);
 }
+?>
+--EXPECT--
+
+string(18) "東京都東京都"
+string(18) "兵庫県兵庫県"
+string(18) "奈良県奈良県"
+string(18) "兵庫県兵庫県"
+string(18) "兵庫県兵庫県"
+string(18) "兵庫県兵庫県"
+string(18) "兵庫県兵庫県"
+string(18) "埼玉県埼玉県"
+string(18) "兵庫県兵庫県"
+string(18) "兵庫県兵庫県"
+string(18) "兵庫県兵庫県"
+string(18) "東京都東京都"
+string(30) "愛知県、大阪府愛知県"
+string(54) "墨田区錦糸町駅前東京都墨田区錦糸町駅"
+string(36) "東京都渋谷区東京都渋谷区"
