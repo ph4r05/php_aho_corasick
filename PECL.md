@@ -8,6 +8,12 @@ cd /aho
 apt-get update
 apt-get install php7.2-xml
 
+phpize --clean
+phpize
+./configure --enable-ahocorasick
+make clean
+make
+
 wget http://pear.php.net/go-pear.phar
 php go-pear.phar
 
