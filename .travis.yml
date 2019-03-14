@@ -48,7 +48,7 @@ addons:
 
 script:
   - ./build.sh
-  - make test
+  - NO_INTERACTION=1 REPORT_EXIT_STATUS=1 make test TESTS="--show-diff"
 
 # optionally set up exclutions and allowed failures in the matrix
 matrix:
