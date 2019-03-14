@@ -25,9 +25,9 @@ http://pear.php.net/dtd/package-2.0.xsd">
         <email>ph4r05@gmail.com</email>
         <active>yes</active>
     </lead>
-    <date>2019-02-13</date>
+    <date>2019-03-14</date>
     <version>
-        <release>0.0.2</release>
+        <release>0.0.3</release>
         <api>0.0.1</api>
     </version>
     <stability>
@@ -47,6 +47,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
                 <file role='doc' name='test2.php'/>
                 <file role='doc' name='test3.php'/>
                 <file role='doc' name='test4.php'/>
+                <file role='doc' name='test5.php'/>
             </dir>
             <file role='doc' name='README.md'/>
             <file role='doc' name='CREDITS'/>
