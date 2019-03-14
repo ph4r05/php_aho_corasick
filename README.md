@@ -29,7 +29,7 @@ https://pecl.php.net/package/ahocorasick
 Pecl installation:
 
 ```bash
-pecl install channel://pecl.php.net/ahocorasick-0.0.2
+pecl install channel://pecl.php.net/ahocorasick-0.0.3
 ```
 
 Note the `php-dev` (or `php-devel`, depends on your distribution) is required for pecl package to compile.
@@ -54,6 +54,7 @@ Install debugging tools, remote debugging
 ```bash
 $ docker build -t="ahoc" --build-arg DEVEL_TOOLS=1 .
 $ docker run -i --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -t ahoc
+$ docker run -i --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --mount type=bind,src=`pwd`,dst=/aho -t ahoc
 ```
 
 Recompiling, or cache busting:
