@@ -4,6 +4,9 @@ Test 4
 <?php if (!extension_loaded("ahocorasick")) print "skip"; ?>
 --FILE--
 <?php
+ini_set("xdebug.var_display_max_depth", 10);
+ini_set("xdebug.var_display_max_children", 1000);
+ini_set("xdebug.var_display_max_data", 1000);
 
 $s = "aoeu a5 a5 a5 a5 aoeu";
 $data = array( array('value'=>'a5'));

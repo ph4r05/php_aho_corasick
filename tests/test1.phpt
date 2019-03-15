@@ -4,6 +4,10 @@ Test 1
 <?php if (!extension_loaded("ahocorasick")) print "skip"; ?>
 --FILE--
 <?php
+ini_set("xdebug.var_display_max_depth", 10);
+ini_set("xdebug.var_display_max_children", 1000);
+ini_set("xdebug.var_display_max_data", 1000);
+
 $data = array(
   	array('key'=>'ab', 'value'=>'alfa'),
 		array('key'=>'ac', 'value'=>'beta'),

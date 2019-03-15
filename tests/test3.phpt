@@ -4,6 +4,9 @@ Test 3
 <?php if (!extension_loaded("ahocorasick")) print "skip"; ?>
 --FILE--
 <?php
+ini_set("xdebug.var_display_max_depth", -1);
+ini_set("xdebug.var_display_max_children", 1000);
+ini_set("xdebug.var_display_max_data", 1000);
 
 // initialize search , returns resourceID for search structure
 $c = ahocorasick_init(array());

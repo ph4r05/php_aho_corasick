@@ -4,6 +4,10 @@ Test 2
 <?php if (!extension_loaded("ahocorasick")) print "skip"; ?>
 --FILE--
 <?php
+ini_set("xdebug.var_display_max_depth", 10);
+ini_set("xdebug.var_display_max_children", 1000);
+ini_set("xdebug.var_display_max_data", 1000);
+
 $aux1 = array(array("helloAuxObject", 41));
 $aux2 = 0x42;
 $aux3 = "simple-aux";

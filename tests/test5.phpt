@@ -4,6 +4,9 @@ Test 5
 <?php if (!extension_loaded("ahocorasick")) print "skip"; ?>
 --FILE--
 <?php
+ini_set("xdebug.var_display_max_depth", 10);
+ini_set("xdebug.var_display_max_children", 1000);
+ini_set("xdebug.var_display_max_data", 1000);
 
 $data = [
     ["key" => "熊本県熊本市北区四方寄町", "value" => "北区四方寄町"],
