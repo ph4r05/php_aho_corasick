@@ -19,6 +19,12 @@ php:
   - 7.1
   # aliased to a recent 7.2.x version
   - 7.2
+  # aliased to a recent 7.3.x version
+  - 7.3
+  # aliased to a recent 7.4.x version
+  - "7.4snapshot"
+  # aliased the most recent 8.x branch
+  - nightly
   # aliased to a recent hhvm version
   - hhvm
 
@@ -53,4 +59,5 @@ script:
 # optionally set up exclutions and allowed failures in the matrix
 matrix:
   allow_failures:
+    - php: nightly
     - php: hhvm
