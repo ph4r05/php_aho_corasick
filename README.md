@@ -29,7 +29,7 @@ https://pecl.php.net/package/ahocorasick
 Pecl installation:
 
 ```bash
-pecl install channel://pecl.php.net/ahocorasick-0.0.4
+pecl install channel://pecl.php.net/ahocorasick-0.0.6
 ```
 
 Note the `php-dev` (or `php-devel`, depends on your distribution) is required for pecl package to compile.

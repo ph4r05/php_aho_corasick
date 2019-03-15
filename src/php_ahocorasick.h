@@ -26,6 +26,9 @@
 #include "TSRM.h"
 #endif
 
+#define PHP_AHOCORASICK_VERSION "0.0.6"
+#define PHP_AHOCORASICK_EXTNAME "ahocorasick"
+
 #ifndef PHP_MAJOR_VERSION
 #define PHP_MAJOR_VERSION 7
 #endif
@@ -135,9 +138,6 @@ ZEND_END_MODULE_GLOBALS(ahocorasick)
 #else
 #define AHOCORASICK_G(v) (ahocorasick_globals.v)
 #endif
-
-#define PHP_AHOCORASICK_VERSION "0.0.4"
-#define PHP_AHOCORASICK_EXTNAME "ahocorasick"
 
 /**
  * Sample param to pass to callback handler for AhoCorasick search algorithm

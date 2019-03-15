@@ -27,7 +27,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
     </lead>
     <date>2019-03-15</date>
     <version>
-        <release>0.0.5</release>
+        <release>0.0.6</release>
         <api>0.0.1</api>
     </version>
     <stability>
@@ -36,9 +36,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
     </stability>
     <license uri="http://www.php.net/license/">PHP License</license>
     <notes>
-        Memory handling fixes in the match result fixes.
-        Minor test and code fixes.
-        PHP 7.3, 7.4 support added.
+        Version fixes
     </notes>
 
     <contents>
