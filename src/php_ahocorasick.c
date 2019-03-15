@@ -254,9 +254,9 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
             keyFound|=0x10;
         } else {
             php_error_docref(NULL TSRMLS_CC, E_WARNING,
-                    "Invalid structure (unrecognized sub-array key: [%s])! "
+                    "Invalid structure (unrecognized sub-array key)! "
                     "Only allowed are: {key, id, value, aux, ignoreCase}. Cannot initialize. "
-                    "Pattern index: %ld", key, (long)pidx);
+                    "Pattern index: %ld", (long)pidx);
             returnCode = -2;
             break;
         }
