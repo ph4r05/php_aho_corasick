@@ -40,6 +40,7 @@ RUN set -ex && \
        apt-get --no-install-recommends --yes install \
           gdb \
           gdbserver \
+          software-properties-common \
           valgrind \
           vim; \
        fi \
