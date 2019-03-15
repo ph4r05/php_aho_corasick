@@ -278,9 +278,7 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
         if ((keyFound & 0x10) > 0){
             // No copying using same reference.
             tmpStruct->auxObj = *data_sub;
-            if (COMPAT_Z_REFCOUNTED(*data_sub)){
-                COMPAT_Z_ADDREF_P(*data_sub);
-            }
+            COMPAT_ZVAL_COPY(&(tmpStruct->auxObj), data_sub);  // soft-copy
         }
 
         // ignoreCase - deprecated.
@@ -300,18 +298,15 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
                 PATTERN_EXCEPTION();
             }
 
-            if (COMPAT_Z_REFCOUNTED(*data_sub)){
-                COMPAT_Z_ADDREF_P(*data_sub);
-            }
-
             // Avoid string copy, use reference counting.
             stmp = COMPAT_Z_STRVAL(*data_sub);
             if (keyFound == 0x1){
-                tmpStruct->zKey = *data_sub;
+                COMPAT_ZVAL_COPY(&(tmpStruct->zKey), data_sub);  // soft-copy
                 tmpStruct->key = stmp;
                 tmpStruct->keyType = AC_PATTID_TYPE_STRING;
             } else if (keyFound == 0x2){
-                tmpStruct->zVal = *data_sub;
+                // value
+                COMPAT_ZVAL_COPY(&(tmpStruct->zVal), data_sub);  // soft-copy
                 tmpStruct->value = stmp;
                 tmpStruct->valueLen = COMPAT_Z_STRLEN(*data_sub);
             }
@@ -586,7 +581,7 @@ static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
         add_assoc_long(COMPAT_Z_ARREF(mysubarray), "pos", m->position);
 
         if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
-            COMPAT_ADD_ASSOC_ZVAL(mysubarray, "key", curPattern->zKey, 0);
+            COMPAT_ADD_ASSOC_ZVAL(mysubarray, "key", curPattern->zKey);
 
         } else if (m->patterns[j].id.type == AC_PATTID_TYPE_NUMBER){
             add_assoc_long(COMPAT_Z_ARREF(mysubarray), "keyIdx", m->patterns[j].id.u.number);
@@ -594,12 +589,12 @@ static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
         }
 
         if (!COMPAT_Z_ISUNDEF(curPattern->auxObj)){
-            COMPAT_ADD_ASSOC_ZVAL(mysubarray, "aux", curPattern->auxObj, 0);
+            COMPAT_ADD_ASSOC_ZVAL(mysubarray, "aux", curPattern->auxObj);
         }
 
         add_assoc_long(COMPAT_Z_ARREF(mysubarray), "start_postion", (m->position - COMPAT_Z_STRLEN_PP(COMPAT_Z_ARREF(curPattern->zVal))));
 
-        COMPAT_ADD_ASSOC_ZVAL(mysubarray, "value", curPattern->zVal, 0);
+        COMPAT_ADD_ASSOC_ZVAL(mysubarray, "value", curPattern->zVal);
 
         // add to aggregate array
         add_next_index_zval(COMPAT_Z_ARREF(myp->resultArray), COMPAT_Z_ARREF(mysubarray));
