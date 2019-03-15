@@ -278,7 +278,9 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
         if ((keyFound & 0x10) > 0){
             // No copying using same reference.
             tmpStruct->auxObj = *data_sub;
-            COMPAT_Z_ADDREF_P(*data_sub);
+            if (COMPAT_Z_REFCOUNTED(*data_sub)){
+                COMPAT_Z_ADDREF_P(*data_sub);
+            }
         }
 
         // ignoreCase - deprecated.
@@ -582,8 +584,7 @@ static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
         add_assoc_long(COMPAT_Z_ARREF(mysubarray), "pos", m->position);
 
         if (m->patterns[j].id.type == AC_PATTID_TYPE_STRING){
-            add_assoc_zval(COMPAT_Z_ARREF(mysubarray), "key", COMPAT_Z_ARREF(curPattern->zKey));
-            COMPAT_Z_ADDREF_P(curPattern->zKey);
+            COMPAT_ADD_ASSOC_ZVAL(mysubarray, "key", curPattern->zKey, 0);
 
         } else if (m->patterns[j].id.type == AC_PATTID_TYPE_NUMBER){
             add_assoc_long(COMPAT_Z_ARREF(mysubarray), "keyIdx", m->patterns[j].id.u.number);
@@ -591,22 +592,12 @@ static int php_ahocorasick_match_handler(AC_MATCH_t * m, void * param)
         }
 
         if (!COMPAT_Z_ISUNDEF(curPattern->auxObj)){
-            add_assoc_zval(COMPAT_Z_ARREF(mysubarray), "aux", COMPAT_Z_ARREF(curPattern->auxObj));
-            COMPAT_Z_ADDREF_P(curPattern->auxObj);
+            COMPAT_ADD_ASSOC_ZVAL(mysubarray, "aux", curPattern->auxObj, 0);
         }
 
         add_assoc_long(COMPAT_Z_ARREF(mysubarray), "start_postion", (m->position - COMPAT_Z_STRLEN_PP(COMPAT_Z_ARREF(curPattern->zVal))));
 
-
-#if PHP7
-        COMPAT_ZVAL tmp_key;
-        ZVAL_COPY(&tmp_key, COMPAT_Z_ARREF(curPattern->zVal));
-        add_assoc_zval(COMPAT_Z_ARREF(mysubarray), "value", &tmp_key);
-#else
-        // PHP7 - this causes a segfault.
-        add_assoc_zval(COMPAT_Z_ARREF(mysubarray), "value", COMPAT_Z_ARREF(curPattern->zVal));
-        COMPAT_Z_ADDREF_P(curPattern->zVal);
-#endif
+        COMPAT_ADD_ASSOC_ZVAL(mysubarray, "value", curPattern->zVal, 0);
 
         // add to aggregate array
         add_next_index_zval(COMPAT_Z_ARREF(myp->resultArray), COMPAT_Z_ARREF(mysubarray));

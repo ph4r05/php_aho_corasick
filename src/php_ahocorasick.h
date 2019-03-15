@@ -62,6 +62,7 @@ typedef int strsize_t;
 #define COMPAT_Z_STRLEN_PP(x) Z_STRLEN_P(x)
 #define COMPAT_Z_STRVAL_P(x) Z_STRVAL_P(x)
 #define COMPAT_Z_ARREF(x) (x)
+#define COMPAT_Z_REFCOUNTED(zval) 1
 
 #define COMPAT_MAKE_STD_ZVAL(x) MAKE_STD_ZVAL(x)
 #define COMPAT_DECLARE_ZVAL(name) zval *name
@@ -72,6 +73,11 @@ typedef int strsize_t;
   *z = *v;                          \
 } while(0)
 #define hp_ptr_dtor(val) zval_ptr_dtor(&(val))
+
+#define COMPAT_ADD_ASSOC_ZVAL(ARR, KEY, SRC, COPY) do {           \
+  add_assoc_zval(COMPAT_Z_ARREF(ARR), KEY, COMPAT_Z_ARREF(SRC));  \
+  COMPAT_Z_ADDREF_P(SRC);                                         \
+} while(0)
 
 #else
 #define PHP7 1
@@ -91,12 +97,13 @@ typedef size_t strsize_t;
 #define COMPAT_Z_LVAL(x) Z_LVAL(x)
 #define COMPAT_Z_STRVAL(x) Z_STRVAL(x)
 #define COMPAT_Z_ARRVAL_P(x) Z_ARRVAL_P(x)
-#define COMPAT_Z_ADDREF_P(x)
+#define COMPAT_Z_ADDREF_P(x) Z_ADDREF(x)
 #define COMPAT_Z_STRLEN(x) Z_STRLEN(x)
 #define COMPAT_Z_STRLEN_P(x) ZSTR_LEN(x)
 #define COMPAT_Z_STRLEN_PP(x) Z_STRLEN_P(x)
 #define COMPAT_Z_STRVAL_P(x) ZSTR_VAL(x)
 #define COMPAT_Z_ARREF(x) &(x)
+#define COMPAT_Z_REFCOUNTED(zval) ((Z_TYPE_FLAGS(zval) & IS_TYPE_REFCOUNTED) != 0)
 
 #define COMPAT_MAKE_STD_ZVAL(x)
 #define COMPAT_DECLARE_ZVAL(name) zval name ## _v; zval * name = &name ## _v
@@ -104,6 +111,20 @@ typedef size_t strsize_t;
 #define COMPAT_ALLOC_INIT_ZVAL2(name) ZVAL_NULL(name)
 #define COMPAT_ZVAL_COPY(z, v) ZVAL_COPY(z, v)
 #define hp_ptr_dtor(val) zval_ptr_dtor(val)
+
+#define COMPAT_ADD_ASSOC_ZVAL(ARR, KEY, SRC, COPY) do {  \
+  COMPAT_ZVAL * p_tmp_key = &SRC;                        \
+  if (COPY){                                             \
+    COMPAT_ZVAL tmp_key;                                 \
+    p_tmp_key = &tmp_key;                                \
+    ZVAL_COPY(&tmp_key, COMPAT_Z_ARREF(SRC));            \
+  } else {                                               \
+    if (COMPAT_Z_REFCOUNTED(SRC)){                       \
+      COMPAT_Z_ADDREF_P(SRC);                            \
+    }                                                    \
+  }                                                      \
+  add_assoc_zval(COMPAT_Z_ARREF(ARR), KEY, p_tmp_key);   \
+} while(0)
 
 #endif
 
