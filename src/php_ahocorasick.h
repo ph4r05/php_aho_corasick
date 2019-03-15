@@ -122,7 +122,7 @@ ZEND_END_MODULE_GLOBALS(ahocorasick)
 #define AHOCORASICK_G(v) (ahocorasick_globals.v)
 #endif
 
-#define PHP_AHOCORASICK_VERSION "2.0"
+#define PHP_AHOCORASICK_VERSION "0.0.4"
 #define PHP_AHOCORASICK_EXTNAME "ahocorasick"
 
 /**

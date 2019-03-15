@@ -63,13 +63,11 @@ static zend_function_entry ahocorasick_functions[] = {
     PHP_FE(ahocorasick_isValid, NULL)
     PHP_FE(ahocorasick_finalize, NULL)
     PHP_FE(ahocorasick_add_patterns, NULL)
-    {NULL, NULL, NULL}
+    PHP_FE_END
 };
 
 zend_module_entry ahocorasick_module_entry = {
-#if ZEND_MODULE_API_NO >= 20010901
     STANDARD_MODULE_HEADER,
-#endif
     PHP_AHOCORASICK_EXTNAME,
     ahocorasick_functions,
     PHP_MINIT(ahocorasick),
@@ -77,9 +75,7 @@ zend_module_entry ahocorasick_module_entry = {
     PHP_RINIT(ahocorasick),
     NULL,
     NULL,
-#if ZEND_MODULE_API_NO >= 20010901
     PHP_AHOCORASICK_VERSION,
-#endif
     STANDARD_MODULE_PROPERTIES
 };
 
