@@ -300,16 +300,18 @@ static inline int php_ahocorasick_process_pattern(zend_long pidx, ahocorasick_pa
                 PATTERN_EXCEPTION();
             }
 
+            if (COMPAT_Z_REFCOUNTED(*data_sub)){
+                COMPAT_Z_ADDREF_P(*data_sub);
+            }
+
             // Avoid string copy, use reference counting.
             stmp = COMPAT_Z_STRVAL(*data_sub);
             if (keyFound == 0x1){
-                // key
-                COMPAT_ZVAL_COPY(&(tmpStruct->zKey), data_sub);
+                tmpStruct->zKey = *data_sub;
                 tmpStruct->key = stmp;
                 tmpStruct->keyType = AC_PATTID_TYPE_STRING;
             } else if (keyFound == 0x2){
-                // value
-                COMPAT_ZVAL_COPY(&(tmpStruct->zVal), data_sub);
+                tmpStruct->zVal = *data_sub;
                 tmpStruct->value = stmp;
                 tmpStruct->valueLen = COMPAT_Z_STRLEN(*data_sub);
             }
