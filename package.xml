@@ -25,7 +25,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
         <email>ph4r05@gmail.com</email>
         <active>yes</active>
     </lead>
-    <date>2019-03-14</date>
+    <date>2019-03-15</date>
     <version>
         <release>0.0.5</release>
         <api>0.0.1</api>
