@@ -48,6 +48,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* For PHP 8 compatibility */
+#ifndef TSRMLS_CC
+#define TSRMLS_CC
+#endif
+#ifndef TSRMLS_DC
+#define TSRMLS_DC
+#endif
+
 // counter for aho struct resources
 int le_ahocorasick_master;
 #if PHP7
