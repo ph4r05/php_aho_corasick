@@ -26,7 +26,7 @@
 #include "TSRM.h"
 #endif
 
-#define PHP_AHOCORASICK_VERSION "0.0.6"
+#define PHP_AHOCORASICK_VERSION "0.0.7"
 #define PHP_AHOCORASICK_EXTNAME "ahocorasick"
 
 #ifndef PHP_MAJOR_VERSION

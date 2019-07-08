@@ -27,7 +27,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
     </lead>
     <date>2019-03-15</date>
     <version>
-        <release>0.0.6</release>
+        <release>0.0.7</release>
         <api>0.0.1</api>
     </version>
     <stability>
@@ -50,6 +50,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
                 <file role='test' name='test3.phpt'/>
                 <file role='test' name='test4.phpt'/>
                 <file role='test' name='test5.phpt'/>
+                <file role='test' name='test6.phpt'/>
             </dir>
             <file role='doc' name='README.md'/>
             <file role='doc' name='CREDITS'/>
