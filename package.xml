@@ -25,7 +25,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
         <email>ph4r05@gmail.com</email>
         <active>yes</active>
     </lead>
-    <date>2019-03-15</date>
+    <date>2019-07-08</date>
     <version>
         <release>0.0.7</release>
         <api>0.0.1</api>
@@ -36,7 +36,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
     </stability>
     <license uri="http://www.php.net/license/">PHP License</license>
     <notes>
-        Version fixes
+        Issue #21 fixed. Problem with buffering all previous searches in the trie.
     </notes>
 
     <contents>
