@@ -723,6 +723,10 @@ PHP_FUNCTION(ahocorasick_match)
     php_ahocorasick_finalize(ahoMaster);
 
     normal = COMPAT_Z_STRVAL_P(uservar);
+    
+    // prints to stdout
+    // PHPWRITE(ZSTR_VAL(uservar), ZSTR_LEN(uservar));
+
 #ifdef AHOCORASICK_USE_LOWER
     // at first, obtain also lower case variant
     // strtolower is disabled now, exact match is required
