@@ -188,11 +188,11 @@ int ac_trie_search (AC_TRIE_t *thiz, AC_TEXT_t *text, int keep,
     else
         position = 0;
     
-    current = thiz->last_node;
-    
     if (!keep)
         ac_trie_reset (thiz);
     
+    current = thiz->last_node;
+
     /* This is the main search loop.
      * It must be kept as lightweight as possible.
      */
