@@ -245,10 +245,12 @@ And if you don't feel like donating, that's OK too.
 
 Bitcoin:
 
-![1Gh3TC55L4FjCyS2y5WKc4EGMYBYa6qvDw](https://deadcode.me/btc-aho.png)<br />1Gh3TC55L4FjCyS2y5WKc4EGMYBYa6qvDw
+![1Gh3TC55L4FjCyS2y5WKc4EGMYBYa6qvDw](https://deadcode.me/btc-aho.png)<br />`1Gh3TC55L4FjCyS2y5WKc4EGMYBYa6qvDw`
 
 Monero:
-47BEukN83whUdvuXbaWmDDQLYNUpLsvFR2jioQtpP5vD8b3o74b9oFgQ3KFa3ibjbwBsaJEehogjiUCfGtugUGAuJAfbh1Z
+```
+89bF7TFrhdyczkz6JmUzXx57yQa3fb28tbyT8nXLpj3bVFfQEE6cpjxec1gAJVSWHBBG7ex2XBj7u6BLrgKBaEmuSzWgdcn
+```
 
 [wiki]: http://en.wikipedia.org/wiki/Aho%E2%80%93Corasick_string_matching_algorithm
 [MultiFast]: http://sourceforge.net/projects/multifast/?source=dlp
