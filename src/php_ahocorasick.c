@@ -66,40 +66,16 @@ static char exception_buffer[8192];
 
 ZEND_DECLARE_MODULE_GLOBALS(ahocorasick)
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ahocorasick_match, 0, 0, 2)
-	ZEND_ARG_INFO(0, needle)
-	ZEND_ARG_INFO(0, id)
-	ZEND_ARG_INFO(0, findAll)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ahocorasick_id, 0, 0, 1)
-	ZEND_ARG_INFO(0, id)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ahocorasick_init, 0, 0, 1)
-	ZEND_ARG_INFO(0, data)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ahocorasick_add_patterns, 0, 0, 2)
-	ZEND_ARG_INFO(0, id)
-	ZEND_ARG_INFO(0, patterns)
-ZEND_END_ARG_INFO()
-
-
-static zend_function_entry ahocorasick_functions[] = {
-    PHP_FE(ahocorasick_match,          arginfo_ahocorasick_match)
-    PHP_FE(ahocorasick_init,           arginfo_ahocorasick_init)
-    PHP_FE(ahocorasick_deinit,         arginfo_ahocorasick_id)
-    PHP_FE(ahocorasick_isValid,        arginfo_ahocorasick_id)
-    PHP_FE(ahocorasick_finalize,       arginfo_ahocorasick_id)
-    PHP_FE(ahocorasick_add_patterns,   arginfo_ahocorasick_add_patterns)
-    PHP_FE_END
-};
+#if PHP_VERSION_ID < 80000
+#include "php_ahocorasick_legacy_arginfo.h"
+#else
+#include "php_ahocorasick_arginfo.h"
+#endif
 
 zend_module_entry ahocorasick_module_entry = {
     STANDARD_MODULE_HEADER,
     PHP_AHOCORASICK_EXTNAME,
-    ahocorasick_functions,
+    ext_functions,
     PHP_MINIT(ahocorasick),
     PHP_MSHUTDOWN(ahocorasick),
     PHP_RINIT(ahocorasick),
