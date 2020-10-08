@@ -42,6 +42,7 @@ CMakeLists.txt
 config.guess
 config.h
 config.h.in
+config.h.in~
 config.status
 config.sub
 configure
@@ -49,10 +50,9 @@ configure.ac
 install-sh
 libtool
 ltmain.sh
+ltmain.sh.backup
 Makefile*
 missing
 mkinstalldirs
-
-
-
+run-tests.php
 
