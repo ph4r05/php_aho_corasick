@@ -34,6 +34,11 @@
 #endif
 
 // Compatibility
+#ifndef TSRMLS_CC
+#define TSRMLS_CC
+#define TSRMLS_DC
+#endif
+
 #if PHP_MAJOR_VERSION < 7
 #define PHP7 0
 typedef long zend_long;
